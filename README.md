@@ -71,6 +71,10 @@ Set environment variables or create a `.env` file (see `.env.example`):
 - **BITE Encryption** - Optional SKALE BITE for encrypted premium intents
 - **Receipts** - Structured JSON receipts for every request (SUCCESS, DENIED, ERROR)
 
+## Website
+
+[RequestTap.ai](https://RequestTap.ai)
+
 ## License
 
 MIT
