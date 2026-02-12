@@ -14,11 +14,13 @@ export async function forwardRequest(
   path: string,
   headers: Record<string, string>,
   body: unknown,
+  queryString?: string,
 ): Promise<ProxyResponse> {
-  const url = `${provider.backend_url.replace(/\/$/, "")}${path}`;
+  const base = provider.backend_url.replace(/\/$/, "");
+  const url = `${base}${path}${queryString || ""}`;
   const outHeaders: Record<string, string> = { ...headers };
 
-  // Remove hop-by-hop headers
+  // Remove hop-by-hop headers (in case caller didn't strip them)
   delete outHeaders["host"];
   delete outHeaders["connection"];
   delete outHeaders["transfer-encoding"];

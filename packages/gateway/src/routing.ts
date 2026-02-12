@@ -15,9 +15,11 @@ export interface RouteRule {
   tool_id: string;
   provider: ProviderConfig;
   price_usdc: string;
+  group?: string;
+  description?: string;
 }
 
-interface CompiledRule {
+export interface CompiledRule {
   rule: RouteRule;
   regex: RegExp;
   segmentCount: number;

@@ -4,18 +4,48 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { v4 as uuidv4 } from "uuid";
 import type { GatewayConfig } from "./config.js";
-import { type RouteRule, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
+import { type RouteRule, type CompiledRule, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
 import { InMemoryReplayStore } from "./replay.js";
 import { SpendTracker } from "./ap2.js";
 import { createIdempotencyMiddleware } from "./middleware/idempotency.js";
 import { createMandateMiddleware } from "./middleware/mandate.js";
-import { createPaymentMiddleware } from "./middleware/payment.js";
+import { createPaymentSystem, type PaymentSystem } from "./middleware/payment.js";
 import { createBiteService } from "./bite.js";
 import { forwardRequest } from "./services/proxy.js";
 import { ReceiptStore } from "./services/receipt-store.js";
 import { hashBytes } from "./hash.js";
 import { logger } from "./utils/logger.js";
+import { createAdminRouter } from "./admin-routes.js";
+import { ConfigStore } from "./services/config-store.js";
 import { Outcome, ReasonCode, type Receipt, HEADERS } from "@requesttap/shared";
+
+// Headers that must not be forwarded to upstream
+const HOP_BY_HOP = new Set([
+  "host",
+  "connection",
+  "transfer-encoding",
+  "content-length",
+  "keep-alive",
+  "upgrade",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+]);
+
+const INTERNAL_HEADERS = new Set<string>([
+  HEADERS.IDEMPOTENCY_KEY,
+  HEADERS.MANDATE,
+  HEADERS.PAYMENT,
+  HEADERS.RECEIPT,
+]);
+
+export interface RouteManager {
+  getRoutes(): RouteRule[];
+  getCompiled(): CompiledRule[];
+  addRoute(rule: RouteRule): void;
+  removeRoute(toolId: string): boolean;
+}
 
 export interface CreateAppOptions {
   config: GatewayConfig;
@@ -36,12 +66,49 @@ export function createApp({ config, routes }: CreateAppOptions) {
   const spendTracker = new SpendTracker();
   const receiptStore = new ReceiptStore();
   const biteService = createBiteService(config);
-  const compiledRoutes = compileRoutes(routes);
+  const paymentSystem: PaymentSystem = createPaymentSystem(config, routes);
+  const startTime = Date.now();
+
+  // Config persistence
+  const routesFile = process.env.RT_ROUTES_FILE || "./routes.json";
+  const configFilePath = routesFile.replace(/\.json$/, "") + ".rt-config.json";
+  const configStore = new ConfigStore(configFilePath.startsWith(".") ? "./rt-config.json" : configFilePath);
+
+  // Apply persisted config on startup
+  const persistedConfig = configStore.load();
+  if (persistedConfig.payToAddress) {
+    (config as any).payToAddress = persistedConfig.payToAddress;
+  }
+  if (persistedConfig.baseNetwork) {
+    (config as any).baseNetwork = persistedConfig.baseNetwork;
+  }
+
+  // Mutable route manager
+  let currentRoutes = [...routes];
+  let currentCompiled = compileRoutes(currentRoutes);
+  const routeManager: RouteManager = {
+    getRoutes: () => [...currentRoutes],
+    getCompiled: () => currentCompiled,
+    addRoute(rule: RouteRule) {
+      currentRoutes.push(rule);
+      currentCompiled = compileRoutes(currentRoutes);
+    },
+    removeRoute(toolId: string) {
+      const idx = currentRoutes.findIndex((r) => r.tool_id === toolId);
+      if (idx === -1) return false;
+      currentRoutes.splice(idx, 1);
+      currentCompiled = compileRoutes(currentRoutes);
+      return true;
+    },
+  };
 
   // Health endpoint (public)
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  // Admin API
+  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, config, configStore, startTime }));
 
   // Gateway routes - catch all non-health requests
   app.use("/api/*", async (req, res) => {
@@ -52,7 +119,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
     // 1. Route matching
     let matchResult;
     try {
-      matchResult = matchRule(compiledRoutes, req.method, req.path);
+      matchResult = matchRule(routeManager.getCompiled(), req.method, req.path);
     } catch (err) {
       if (err instanceof RouteNotFoundError) {
         const receipt: Receipt = {
@@ -106,19 +173,29 @@ export function createApp({ config, routes }: CreateAppOptions) {
     });
     if (!mandateResult) return;
 
-    // 4. Payment (x402 - pass-through for now)
-    const paymentMw = createPaymentMiddleware(config);
-    await new Promise<void>((resolve) => {
-      paymentMw(req, res, () => resolve());
+    // 4. Payment verification (x402)
+    const paymentResult = await new Promise<boolean>((resolve) => {
+      paymentSystem.middleware(req, res, () => resolve(true));
+      if (res.headersSent) resolve(false);
     });
-    if (res.headersSent) return;
+    if (!paymentResult) return;
 
     // 5. Proxy to upstream
     try {
+      // Build forwarded headers: all client headers minus hop-by-hop and internal
       const proxyHeaders: Record<string, string> = {};
-      if (req.headers["content-type"]) {
-        proxyHeaders["content-type"] = req.headers["content-type"] as string;
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (HOP_BY_HOP.has(key) || INTERNAL_HEADERS.has(key)) continue;
+        if (typeof value === "string") {
+          proxyHeaders[key] = value;
+        } else if (Array.isArray(value)) {
+          proxyHeaders[key] = value.join(", ");
+        }
       }
+
+      // Preserve query string for upstream
+      const qsIndex = req.originalUrl.indexOf("?");
+      const queryString = qsIndex >= 0 ? req.originalUrl.substring(qsIndex) : "";
 
       const proxyRes = await forwardRequest(
         matchResult.rule.provider,
@@ -126,7 +203,11 @@ export function createApp({ config, routes }: CreateAppOptions) {
         req.path,
         proxyHeaders,
         req.body,
+        queryString,
       );
+
+      // 6. Settle payment after successful proxy
+      const settlement = await paymentSystem.settle(req);
 
       const latencyMs = Math.round(performance.now() - startTime);
       const responseHash = hashBytes(JSON.stringify(proxyRes.data));
@@ -145,8 +226,8 @@ export function createApp({ config, routes }: CreateAppOptions) {
         mandate_hash: null,
         mandate_verdict: (req as any).mandateVerdict || "SKIPPED",
         reason_code: ReasonCode.OK,
-        payment_tx_hash: null,
-        facilitator_receipt_id: null,
+        payment_tx_hash: settlement.txHash,
+        facilitator_receipt_id: settlement.txHash,
         request_hash: (req as any).requestHash || "",
         response_hash: responseHash,
         latency_ms: latencyMs,
@@ -188,5 +269,5 @@ export function createApp({ config, routes }: CreateAppOptions) {
     }
   });
 
-  return { app, replayStore, receiptStore, spendTracker };
+  return { app, replayStore, receiptStore, spendTracker, routeManager };
 }

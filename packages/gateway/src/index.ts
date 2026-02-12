@@ -1,23 +1,28 @@
 import { loadConfig, type GatewayConfig } from "./config.js";
-import { createApp, type CreateAppOptions } from "./server.js";
+import { createApp, type CreateAppOptions, type RouteManager } from "./server.js";
 import type { RouteRule } from "./routing.js";
+import { loadRoutesFromFile } from "./routes-loader.js";
 import { logger } from "./utils/logger.js";
 import type { Express } from "express";
 import type { Server } from "http";
 
 export { loadConfig, type GatewayConfig } from "./config.js";
-export { createApp } from "./server.js";
-export { type RouteRule, type ProviderConfig, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
+export { createApp, type RouteManager } from "./server.js";
+export { type RouteRule, type ProviderConfig, type CompiledRule, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
+export { createAdminRouter } from "./admin-routes.js";
 export { InMemoryReplayStore, checkReplay, type ReplayStore } from "./replay.js";
 export { SpendTracker, verifyMandate, mandateSigningPayload } from "./ap2.js";
 export { requestHash, hashBytes, canonicalString } from "./hash.js";
 export { isPrivateOrReserved, assertNotSSRF, SSRFError } from "./utils/ssrf.js";
 export { ReceiptStore } from "./services/receipt-store.js";
 export { createBiteService, type BiteService } from "./bite.js";
+export { loadRoutesFromFile } from "./routes-loader.js";
+export { createPaymentSystem, type PaymentSystem, type SettlementResult } from "./middleware/payment.js";
 
 export interface Gateway {
   app: Express;
   config: GatewayConfig;
+  routeManager: RouteManager;
   start(): Promise<Server>;
   stop(): Promise<void>;
 }
@@ -27,14 +32,25 @@ export function createGateway(overrides?: {
   routes?: RouteRule[];
 }): Gateway {
   const config = { ...loadConfig(), ...overrides?.config };
-  const routes = overrides?.routes || [];
 
-  const { app, replayStore } = createApp({ config, routes });
+  // Load routes: from overrides, from file (RT_ROUTES_FILE env), or empty
+  let routes = overrides?.routes;
+  if (!routes) {
+    const routesFile = process.env.RT_ROUTES_FILE;
+    if (routesFile) {
+      routes = loadRoutesFromFile(routesFile);
+    } else {
+      routes = [];
+    }
+  }
+
+  const { app, replayStore, routeManager } = createApp({ config, routes });
   let server: Server | null = null;
 
   return {
     app,
     config,
+    routeManager,
     async start() {
       return new Promise((resolve) => {
         server = app.listen(config.port, () => {

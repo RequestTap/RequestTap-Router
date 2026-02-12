@@ -1,0 +1,42 @@
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v1/quote",
+      "tool_id": "quote",
+      "price_usdc": "0.01",
+      "provider": {
+        "provider_id": "acme-data",
+        "backend_url": "https://api.acme.com",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer YOUR_API_KEY"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/premium-brief",
+      "tool_id": "premium-brief",
+      "price_usdc": "0.05",
+      "provider": {
+        "provider_id": "acme-data",
+        "backend_url": "https://api.acme.com",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer YOUR_API_KEY"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/search/:query",
+      "tool_id": "search",
+      "price_usdc": "0.02",
+      "provider": {
+        "provider_id": "search-engine",
+        "backend_url": "https://search-api.example.com"
+      }
+    }
+  ]
+}

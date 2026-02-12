@@ -12,30 +12,56 @@ export interface RequestOptions {
   idempotencyKey?: string;
 }
 
+export interface CdpWalletConfig {
+  apiKeyId?: string;
+  apiKeySecret?: string;
+  walletSecret?: string;
+  network?: string;
+}
+
 export class RequestTapClient {
   private baseUrl: string;
   private mandate?: Mandate;
   private receipts: Receipt[] = [];
   private paymentFetch: typeof fetch = fetch;
+  private walletAddress: string | null = null;
 
   constructor(options: RequestTapClientOptions) {
     this.baseUrl = options.gatewayBaseUrl.replace(/\/$/, "");
     this.mandate = options.mandate;
   }
 
-  async init(): Promise<void> {
-    // In production, this would:
-    // 1. Create a CDP server wallet via @coinbase/cdp-sdk
-    // 2. Configure x402 client with the wallet signer
-    // 3. Wrap fetch with automatic 402 payment handling via @x402/fetch
-    //
-    // const cdp = new CdpClient({
-    //   apiKeyId: process.env.CDP_API_KEY_ID,
-    //   apiKeySecret: process.env.CDP_API_KEY_SECRET,
-    //   walletSecret: process.env.CDP_WALLET_SECRET,
-    // });
-    // const wallet = await cdp.evm.createWallet({ network: "base-sepolia" });
-    // this.paymentFetch = wrapFetchWithPayment(fetch, wallet);
+  async init(cdpConfig?: CdpWalletConfig): Promise<void> {
+    const { CdpClient } = await import("@coinbase/cdp-sdk");
+    const { x402Client, wrapFetchWithPayment } = await import("@x402/fetch");
+    const { registerExactEvmScheme } = await import("@x402/evm/exact/client");
+
+    // Create CDP client - reads CDP_API_KEY_ID, CDP_API_KEY_SECRET,
+    // CDP_WALLET_SECRET from env if not provided
+    const cdp = new CdpClient(
+      cdpConfig?.apiKeyId
+        ? {
+            apiKeyId: cdpConfig.apiKeyId,
+            apiKeySecret: cdpConfig.apiKeySecret!,
+            walletSecret: cdpConfig.walletSecret!,
+          }
+        : undefined,
+    );
+
+    // Create an EVM account (acts as the signer for x402 payments)
+    const account = await cdp.evm.createAccount();
+    this.walletAddress = account.address;
+
+    // Build x402 client with EVM payment scheme
+    const client = new x402Client();
+    registerExactEvmScheme(client, { signer: account as any });
+
+    // Wrap fetch so 402 responses are automatically paid and retried
+    this.paymentFetch = wrapFetchWithPayment(fetch, client);
+  }
+
+  getWalletAddress(): string | null {
+    return this.walletAddress;
   }
 
   async request(
