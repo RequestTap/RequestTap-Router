@@ -75,6 +75,10 @@ Set environment variables or create a `.env` file (see `.env.example`):
 
 [RequestTap.ai](https://RequestTap.ai)
 
+## Contact
+
+[support@requesttap.ai](mailto:support@requesttap.ai)
+
 ## License
 
 MIT
