@@ -4,7 +4,7 @@
 
 # RequestTap Router
 
-An open-source payment gateway router that sits between AI agents and paid API endpoints. It enforces x402 payments on Base (USDC), verifies AP2 mandates (spend caps & allowlists), prevents replay attacks, and optionally encrypts premium intent data on SKALE via the BITE protocol.
+Open Source x402 API Router. Instantly turn any API into a USDC pay-per-request Service for AI Agents.
 
 ## Architecture
 
