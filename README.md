@@ -81,4 +81,4 @@ Set environment variables or create a `.env` file (see `.env.example`):
 
 ## License
 
-MIT
+Free for non-commercial use. Commercial use requires permission — contact [support@requesttap.ai](mailto:support@requesttap.ai). See [LICENSE](LICENSE) for details.
