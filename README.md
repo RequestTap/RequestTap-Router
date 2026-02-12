@@ -47,6 +47,7 @@ Contracts: Solidity → Hardhat → SKALE Deployment
 | `packages/shared` | Types, schemas, constants |
 | `packages/gateway` | Express HTTP gateway with middleware pipeline |
 | `packages/sdk` | Agent client SDK (`RequestTapClient`) |
+| `dashboard` | Admin dashboard & debug tools |
 | `examples/agent-demo` | Demo script |
 | `contracts/` | SKALE BITE Solidity contract |
 
