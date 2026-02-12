@@ -1,0 +1,17 @@
+{
+  "name": "@requesttap/agent-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --loader ts-node/esm run.ts"
+  },
+  "dependencies": {
+    "@requesttap/sdk": "*",
+    "@requesttap/shared": "*"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.0",
+    "typescript": "^5.5.0"
+  }
+}
