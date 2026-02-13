@@ -8,6 +8,9 @@ export interface GatewayConfig {
   skaleChainId?: number;
   skaleBiteContract?: string;
   skalePrivateKey?: string;
+  erc8004RpcUrl?: string;
+  erc8004Contract?: string;
+  erc8004MinScore?: number;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): GatewayConfig {
@@ -28,6 +31,12 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     baseNetwork,
     replayTtlMs,
   };
+
+  if (env.ERC8004_RPC_URL) {
+    config.erc8004RpcUrl = env.ERC8004_RPC_URL;
+    config.erc8004Contract = env.ERC8004_CONTRACT;
+    config.erc8004MinScore = env.ERC8004_MIN_SCORE ? parseInt(env.ERC8004_MIN_SCORE, 10) : 20;
+  }
 
   if (env.SKALE_RPC_URL) {
     config.skaleRpcUrl = env.SKALE_RPC_URL;

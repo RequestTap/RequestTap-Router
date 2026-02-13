@@ -18,6 +18,7 @@ export { isPrivateOrReserved, assertNotSSRF, SSRFError } from "./utils/ssrf.js";
 export { assertNotX402Upstream, X402UpstreamError } from "./utils/x402-probe.js";
 export { ReceiptStore } from "./services/receipt-store.js";
 export { createBiteService, type BiteService } from "./bite.js";
+export { createReputationService, type ReputationService, type ReputationResult } from "./services/reputation.js";
 export { loadRoutesFromFile } from "./routes-loader.js";
 export { createPaymentSystem, type PaymentSystem, type SettlementResult } from "./middleware/payment.js";
 

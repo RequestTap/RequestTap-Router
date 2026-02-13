@@ -39,6 +39,9 @@ Copy from `.env.example` if missing. Required vars:
 | `RT_BASE_NETWORK` | no | `base-sepolia` | Base network name |
 | `RT_ROUTES_FILE` | no | — | Path to routes JSON file |
 | `RT_ADMIN_KEY` | no | — | Bearer token for admin endpoints |
+| `ERC8004_RPC_URL` | no | — | ERC-8004 reputation registry RPC URL |
+| `ERC8004_CONTRACT` | no | — | ERC-8004 contract address |
+| `ERC8004_MIN_SCORE` | no | `20` | Min reputation score to allow requests |
 | `SKALE_RPC_URL` | no | — | Enables SKALE BITE if set |
 | `SKALE_CHAIN_ID` | no | — | SKALE chain ID |
 | `SKALE_BITE_CONTRACT` | no | — | BITE contract address |
@@ -124,3 +127,4 @@ Slash commands are defined in `.claude/commands/` and available in any Claude Co
 - **viem** — Ethereum signing/verification. Use `verifyMessage` (not `recoverAddress`) for EIP-191 personal signatures. `keccak256` expects hex strings, so use `toHex(data)` for Uint8Array input.
 - **x402** — Payment protocol middleware (`@x402/express`)
 - **SKALE BITE** — Optional privacy/encryption layer
+- **ERC-8004** — On-chain agent reputation registry. Uses `getSummary(agentId, [], "", "")` to query scores. Agents pass their token ID via `x-agent-id` header. Contracts: Base Sepolia `0x8004B663056A597Dffe9eCcC1965A193B7388713`, Mainnet `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`.

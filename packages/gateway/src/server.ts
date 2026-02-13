@@ -11,6 +11,7 @@ import { createIdempotencyMiddleware } from "./middleware/idempotency.js";
 import { createMandateMiddleware } from "./middleware/mandate.js";
 import { createPaymentSystem, type PaymentSystem } from "./middleware/payment.js";
 import { createBiteService } from "./bite.js";
+import { createReputationService } from "./services/reputation.js";
 import { forwardRequest } from "./services/proxy.js";
 import { ReceiptStore } from "./services/receipt-store.js";
 import { hashBytes } from "./hash.js";
@@ -67,6 +68,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
   const spendTracker = new SpendTracker();
   const receiptStore = new ReceiptStore();
   const biteService = createBiteService(config);
+  const reputationService = createReputationService(config);
   const paymentSystem: PaymentSystem = createPaymentSystem(config, routes);
   const startTime = Date.now();
 
@@ -103,7 +105,8 @@ export function createApp({ config, routes }: CreateAppOptions) {
   }
   if (config.skaleChainId) {
     const networkLabel = config.skaleChainId === 974399131 ? "calypso-testnet"
-      : config.skaleChainId === 1351057110 ? "staging-v3" : "mainnet";
+      : config.skaleChainId === 1351057110 ? "staging-v3"
+      : config.skaleChainId === 324705682 ? "base-sepolia-testnet" : "mainnet";
     if (!persistedConfig.skaleNetwork || persistedConfig.skaleNetwork !== networkLabel) {
       persistedConfig.skaleNetwork = networkLabel;
       needsSave = true;
@@ -159,7 +162,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
   });
 
   // Admin API
-  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService }));
+  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService, reputationService }));
 
   // Gateway routes - catch all non-health requests
   // NOTE: must use app.all (not app.use) so req.path retains the full path
@@ -197,6 +200,25 @@ export function createApp({ config, routes }: CreateAppOptions) {
           explanation: `Agent ${agentAddress} is blacklisted`,
         });
         return;
+      }
+    }
+
+    // 0.6 ERC-8004 reputation check
+    const agentIdHeader = req.headers["x-agent-id"] as string;
+    if (agentIdHeader && reputationService) {
+      try {
+        const rep = await reputationService.checkReputation(BigInt(agentIdHeader));
+        if (!rep.allowed) {
+          res.status(403).json({
+            request_id: requestId,
+            outcome: Outcome.DENIED,
+            reason_code: ReasonCode.LOW_REPUTATION,
+            explanation: `Agent reputation too low (score: ${rep.score}, min: ${config.erc8004MinScore})`,
+          });
+          return;
+        }
+      } catch (err: any) {
+        logger.warn("ERC-8004 reputation check failed (allowing request)", { error: err.message });
       }
     }
 

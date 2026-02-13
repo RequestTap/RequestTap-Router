@@ -935,7 +935,7 @@
 
       <div class="debug-section collapsed" data-section="blacklist">
         <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">Agent Blacklist <span class="debug-section-status" id="ss-blacklist"></span></h3>
+          <h3 class="debug-section-title">Agent Access Control <span class="debug-section-status" id="ss-blacklist"></span></h3>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn btn-sm" onclick="event.stopPropagation();runSection('blacklist')">Run Section</button>
 
@@ -955,6 +955,11 @@
           <div class="debug-card" id="debug-agent-blocked">
             <div class="debug-card-header"><span class="debug-card-title">Agent Blocked</span><button class="btn btn-sm" onclick="testAgentBlocked()">Run</button></div>
             <div class="debug-card-desc">Add agent to blacklist, request &mdash; 403 AGENT_BLOCKED, then remove</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-erc8004-reputation">
+            <div class="debug-card-header"><span class="debug-card-title">ERC-8004 Reputation</span><button class="btn btn-sm" onclick="testErc8004Reputation()">Run</button></div>
+            <div class="debug-card-desc">GET /admin/reputation/1 &mdash; query on-chain agent reputation score</div>
             <div class="debug-result"></div>
           </div>
         </div>
@@ -1272,6 +1277,25 @@ async function loadDashboardConfig() {
     document.getElementById('input-api-key').value = dashboardConfig.apiKey || '';
     document.getElementById('input-api-base-url').value = dashboardConfig.apiBaseUrl || gatewayUrl;
     updateNetworkLabels();
+    // Auto-verify SKALE connection on load if RPC URL is configured
+    if (dashboardConfig.skaleRpcUrl) {
+      autoVerifySkale(dashboardConfig.skaleNetwork, dashboardConfig.skaleRpcUrl);
+    }
+  } catch {}
+}
+
+async function autoVerifySkale(skaleNet, rpcUrl) {
+  try {
+    const r = await fetch('/rpc-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rpcUrl, body: { jsonrpc: '2.0', method: 'eth_chainId', params: [], id: 1 } }),
+    });
+    const d = await r.json();
+    if (d.result) {
+      localStorage.setItem('rt-skale-connected', (skaleNet || '') + '|' + rpcUrl);
+      updateNetworkLabels();
+    }
   } catch {}
 }
 
@@ -2136,7 +2160,7 @@ const debugSections = {
   payment:    (r, c) => [() => testPaymentRequired(r,c)],
   x402:       ()     => [testX402Probe, testX402Skip],
   mandate:    (r, c) => [[() => testMandateSkipped(r,c), () => testMandateRejected(r,c)]],
-  blacklist:  (r, c) => [testBlacklistApi, [() => testAgentAllowed(r,c), () => testAgentBlocked(r,c)]],
+  blacklist:  (r, c) => [testBlacklistApi, [() => testAgentAllowed(r,c), () => testAgentBlocked(r,c), testErc8004Reputation]],
   receipts:   ()     => [[testReceiptsStats, testReceiptsList, testReceiptsFilter]],
   admin:      ()     => [[testAdminConfig, testDashboardConfigTest, testAdminRoutes]],
   docs:       ()     => [testOpenApiSpec],
@@ -2411,6 +2435,21 @@ async function testAgentBlocked(routes, cfg) {
     try { await api('/admin/blacklist/' + encodeURIComponent(testAddr), { method: 'DELETE' }); } catch {}
     setTestResult('agent-blocked', 'fail', { error: e.message });
   }
+}
+
+async function testErc8004Reputation() {
+  setTestRunning('erc8004-reputation');
+  try {
+    const r = await api('/admin/reputation/1');
+    const d = await r.json();
+    if (r.status === 400 && d.error === 'ERC-8004 not configured') {
+      setTestResult('erc8004-reputation', 'skip', 'ERC-8004 not configured');
+    } else if (r.ok && typeof d.score === 'number') {
+      setTestResult('erc8004-reputation', 'pass', d);
+    } else {
+      setTestResult('erc8004-reputation', 'fail', d);
+    }
+  } catch (e) { setTestResult('erc8004-reputation', 'fail', { error: e.message }); }
 }
 
 async function testReceiptsStats() {

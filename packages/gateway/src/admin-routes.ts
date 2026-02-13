@@ -8,6 +8,7 @@ import type { SpendTracker } from "./ap2.js";
 import type { GatewayConfig } from "./config.js";
 import type { ConfigStore } from "./services/config-store.js";
 import type { BiteService } from "./bite.js";
+import type { ReputationService } from "./services/reputation.js";
 import { parseOpenApiToRoutes } from "./services/openapi-parser.js";
 import { generateAgentApiDocs } from "./services/docs-generator.js";
 import { assertNotX402Upstream, X402UpstreamError } from "./utils/x402-probe.js";
@@ -21,10 +22,11 @@ export interface AdminRouterDeps {
   configStore: ConfigStore;
   startTime: number;
   biteService: BiteService | null;
+  reputationService: ReputationService | null;
 }
 
 export function createAdminRouter(deps: AdminRouterDeps): Router {
-  const { routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService } = deps;
+  const { routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService, reputationService } = deps;
   const router = Router();
 
   router.use(createAdminAuth());
@@ -397,6 +399,20 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
       res.json({ ok: true, txHash, intentId });
     } catch (err: any) {
       res.status(500).json({ error: `SKALE anchor failed: ${err.message}` });
+    }
+  });
+
+  // GET /admin/reputation/:agentId
+  router.get("/reputation/:agentId", async (req, res) => {
+    if (!reputationService) {
+      res.status(400).json({ error: "ERC-8004 not configured" });
+      return;
+    }
+    try {
+      const result = await reputationService.checkReputation(BigInt(req.params.agentId));
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: `Reputation check failed: ${err.message}` });
     }
   });
 

@@ -38,7 +38,7 @@ Open Source x402 API Router. Instantly turn any API into a USDC pay-per-request 
 - **Replay Protection** - Idempotency key + request hash deduplication
 - **SSRF Protection** - Blocks private/reserved IP ranges at route compile time
 - **x402 Upstream Detection** - Rejects routes that already speak x402 to prevent markup/middleman abuse
-- **Agent Blacklist** - Block specific agent addresses from using the gateway
+- **Agent Access Control** - Block specific agent addresses and check ERC-8004 on-chain reputation scores
 - **API Key Auth** - Optional API key requirement for gateway routes
 - **Rate Limiting** - 100 requests/min per IP via express-rate-limit
 - **Security Headers** - helmet + CORS middleware on all responses
@@ -55,7 +55,7 @@ AI Agent  ──>  Agent SDK  ──>  Gateway  ──>  Upstream API
                   │         ├──────────────┤
                   │         │ Rate Limit   │ ← 100 req/min
                   │         │ API Key Auth │
-                  │         │ Blacklist    │
+                  │         │ Access Ctrl  │ ← Blacklist + ERC-8004
                   │         │ Route Match  │ ← OpenAPI 3.0
                   │         │ Idempotency  │
                   │         │ AP2 Mandate  │ ← EIP-191 Signatures
@@ -158,6 +158,9 @@ Set environment variables or create a `.env` file (see `.env.example`):
 | `RT_ROUTES_FILE` | no | — | Path to routes JSON file |
 | `RT_REPLAY_TTL_MS` | no | `300000` | Replay protection window in milliseconds (5 min) |
 | `RT_SKIP_X402_PROBE` | no | `false` | Skip x402 upstream detection on route registration |
+| `ERC8004_RPC_URL` | no | — | RPC URL for ERC-8004 reputation registry |
+| `ERC8004_CONTRACT` | no | — | ERC-8004 Reputation Registry contract address |
+| `ERC8004_MIN_SCORE` | no | `20` | Minimum reputation score to allow requests |
 | `SKALE_RPC_URL` | no | — | SKALE RPC endpoint (enables BITE encryption) |
 | `SKALE_CHAIN_ID` | no | — | SKALE chain ID |
 | `SKALE_BITE_CONTRACT` | no | — | BITE contract address |
@@ -192,6 +195,7 @@ Set environment variables or create a `.env` file (see `.env.example`):
 | `GET` | `/admin/blacklist` | List blacklisted agent addresses |
 | `POST` | `/admin/blacklist` | Add agent address to blacklist |
 | `DELETE` | `/admin/blacklist/:address` | Remove agent from blacklist |
+| `GET` | `/admin/reputation/:agentId` | Query ERC-8004 on-chain reputation for an agent |
 
 ## Agent Guide
 

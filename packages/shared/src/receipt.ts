@@ -22,6 +22,7 @@ export enum ReasonCode {
   UNAUTHORIZED = "UNAUTHORIZED",
   INTERNAL_ERROR = "INTERNAL_ERROR",
   AGENT_BLOCKED = "AGENT_BLOCKED",
+  LOW_REPUTATION = "LOW_REPUTATION",
 }
 
 export interface Receipt {
