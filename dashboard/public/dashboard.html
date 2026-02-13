@@ -1712,6 +1712,11 @@ async function generateDocs() {
 
 // ── Demo Settings ────────────────────────────────────────────────────
 async function loadDemoSettings() {
+  // Show loading state
+  const btn = document.querySelector('[onclick="loadDemoSettings()"]');
+  const origText = btn?.textContent;
+  if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
+
   // Generate a random test API key
   const demoKey = 'rt_test_' + Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
 
@@ -1722,12 +1727,10 @@ async function loadDemoSettings() {
     { method: 'GET', path: '/api/v1/internal/restricted', tool_id: 'restricted', price_usdc: '0.00', description: 'Restricted test endpoint (disabled)', restricted: true, provider: { provider_id: 'acme-data', backend_url: 'https://api.acme.com', auth: { header: 'Authorization', value: 'Bearer ' + demoKey } } },
   ];
 
-  // Add demo routes
-  for (const route of demoRoutes) {
-    try {
-      await api('/admin/routes', { method: 'POST', body: JSON.stringify(route) });
-    } catch {}
-  }
+  // Add demo routes in parallel
+  await Promise.allSettled(demoRoutes.map(route =>
+    api('/admin/routes', { method: 'POST', body: JSON.stringify(route) })
+  ));
 
   // Set demo config
   document.getElementById('input-api-base-url').value = 'http://localhost:4402';
@@ -1739,9 +1742,16 @@ async function loadDemoSettings() {
   document.getElementById('input-skale-contract').value = '0x64687C88C767D9a504c392C07393980af2879dC1';
   await saveDashboardConfig();
 
+  // Mark connections as active (demo settings are known-good)
+  localStorage.setItem('rt-base-connected', 'base-sepolia');
+  localStorage.setItem('rt-skale-connected', 'base-sepolia-testnet|https://base-sepolia-testnet.skalenodes.com/v1/base-testnet');
+
   await loadRoutes();
   refreshHealth();
+  updateNetworkLabels();
   switchTab('routes');
+
+  if (btn) { btn.textContent = origText; btn.disabled = false; }
 }
 
 // ── Import API ───────────────────────────────────────────────────────
