@@ -5,6 +5,7 @@
       "path": "/api/v1/search/:query",
       "tool_id": "search",
       "price_usdc": "0.01",
+      "description": "Search the web",
       "provider": {
         "provider_id": "acme-data",
         "backend_url": "https://api.acme.com",
@@ -19,6 +20,7 @@
       "path": "/api/v1/quote",
       "tool_id": "quote",
       "price_usdc": "0.01",
+      "description": "Get a stock quote",
       "provider": {
         "provider_id": "acme-data",
         "backend_url": "https://api.acme.com",
@@ -33,6 +35,23 @@
       "path": "/api/v1/analysis",
       "tool_id": "analysis",
       "price_usdc": "0.05",
+      "description": "Run data analysis",
+      "provider": {
+        "provider_id": "acme-data",
+        "backend_url": "https://api.acme.com",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer YOUR_API_KEY"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/internal/restricted",
+      "tool_id": "restricted",
+      "price_usdc": "0.00",
+      "description": "Restricted test endpoint (disabled)",
+      "restricted": true,
       "provider": {
         "provider_id": "acme-data",
         "backend_url": "https://api.acme.com",
