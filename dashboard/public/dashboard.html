@@ -40,19 +40,8 @@
       background: #58a6ff22; color: var(--accent); border: 1px solid #58a6ff44;
     }
     nav .spacer { flex: 1; }
-    .network-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 1px;
-      padding: 3px 8px; border-radius: 4px; margin-right: 4px;
-    }
-    .network-label.testnet { background: transparent; color: var(--orange); border: 1px solid var(--orange); }
-    .network-label.testnet::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); margin-right: 5px; vertical-align: -1px; }
-    .network-label.mainnet { background: transparent; color: var(--green); border: 1px solid var(--orange); }
-    .network-label.mainnet::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 5px; vertical-align: -1px; }
-    .network-label.connected { background: transparent; color: var(--green); border: 1px solid var(--green); }
-    .network-label.connected::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 5px; vertical-align: -1px; }
 
     /* Settings */
-    .settings-wrapper { position: relative; }
     .settings-btn {
       display: flex; align-items: center; gap: 8px;
       background: var(--surface); border: 1px solid var(--border);
@@ -62,19 +51,42 @@
     .settings-btn:hover { border-color: #2acc91; color: #2acc91; }
     .settings-btn .cog { width: 18px; height: 18px; transition: transform .3s; }
     .settings-btn:hover .cog { transform: rotate(45deg); }
-    .settings-dropdown {
-      display: none; position: absolute; right: 0; top: calc(100% + 8px);
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); width: 600px; z-index: 100;
-      box-shadow: 0 8px 24px rgba(0,0,0,.4); max-height: 80vh; overflow-y: auto;
+    .settings-gear { width: 18px; height: 18px; cursor: pointer; opacity: 0.45; flex-shrink: 0; transition: opacity .2s, transform .3s; }
+    .settings-gear:hover { opacity: 0.9; transform: rotate(45deg); }
+    .settings-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      z-index: 200; align-items: center; justify-content: center;
     }
-    .settings-dropdown.open { display: block; }
-    .settings-dropdown-header {
+    .settings-backdrop.open { display: flex; }
+    .settings-modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 600px; max-width: calc(100vw - 40px);
+      box-shadow: 0 16px 48px rgba(0,0,0,.5); max-height: 80vh; display: flex; flex-direction: column;
+    }
+    .settings-modal-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 20px; border-bottom: 1px solid var(--border);
-      font-size: 15px; font-weight: 600;
+      font-size: 15px; font-weight: 600; flex-shrink: 0;
     }
-    .settings-dropdown-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .settings-modal-close {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 20px; padding: 0 4px; line-height: 1; transition: color .2s;
+    }
+    .settings-modal-close:hover { color: var(--text); }
+    .settings-tabs {
+      display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      background: var(--bg); padding: 0 12px;
+    }
+    .settings-tab {
+      padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer; border: none; background: none; letter-spacing: 0.5px;
+      border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+    }
+    .settings-tab:hover { color: var(--text); }
+    .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .settings-tab-panel { display: none; }
+    .settings-tab-panel.active { display: flex; flex-direction: column; gap: 14px; }
+    .settings-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
     .settings-section-label {
       font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase;
       letter-spacing: 1px; padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--border);
@@ -96,6 +108,19 @@
     }
     .test-btn:hover { background: #2ea043; }
     .test-result { font-size: 14px; margin-top: 4px; }
+    .cdp-env-grid { display: flex; flex-direction: column; gap: 8px; }
+    .cdp-env-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .cdp-env-name {
+      font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      font-size: 13px; color: var(--text);
+    }
+    .cdp-env-status { font-size: 13px; font-weight: 600; }
+    .cdp-env-status.set { color: var(--green); }
+    .cdp-env-status.missing { color: var(--orange); }
 
     /* Layout */
     .layout { display: flex; flex: 1; overflow: hidden; }
@@ -391,11 +416,31 @@
 
     /* Debug Tab */
     .debug-section { margin-bottom: 24px; }
+    .debug-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; margin-bottom: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 14px;
+      transition: border-color .2s;
+    }
+    .debug-section-header:hover { border-color: var(--muted); }
+    .debug-section-header .debug-section-title { margin-bottom: 0; font-size: 15px; color: var(--text); }
+    .debug-section-status {
+      display: inline-flex; gap: 6px; align-items: center;
+      font-size: 11px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      margin-left: 10px;
+    }
+    .debug-section-status .ss-pass { color: var(--green); }
+    .debug-section-status .ss-fail { color: var(--red); }
+    .debug-section-status .ss-skip { color: var(--orange); }
+    .debug-section-status .ss-running { color: var(--accent); }
+    .debug-section.collapsed .debug-cards { display: none; }
+    .debug-section.collapsed .debug-section-header { margin-bottom: 0; }
     .debug-section-title {
       font-size: 14px; font-weight: 600; color: var(--muted);
       text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
     }
-    .debug-cards { display: flex; flex-direction: column; gap: 8px; }
+    .debug-cards { display: flex; flex-direction: column; gap: 8px; padding-left: 16px; }
     .debug-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 12px 16px;
@@ -405,6 +450,9 @@
     .debug-card.fail { border-left-color: var(--red); }
     .debug-card.skip { border-left-color: var(--orange); }
     .debug-card.running { border-left-color: var(--accent); }
+    .debug-cards.filter-pass .debug-card:not(.pass),
+    .debug-cards.filter-fail .debug-card:not(.fail),
+    .debug-cards.filter-skip .debug-card:not(.skip) { display: none; }
     .debug-card-header {
       display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
     }
@@ -433,45 +481,61 @@
 <body>
 
 <nav>
-  <a href="/dashboard"><img src="/logo.png" alt="RequestTap" /></a>
+  <a href="/routes"><img src="/logo.png" alt="RequestTap" /></a>
   <span class="admin-label">ROUTER ADMIN</span>
   <span class="sep" id="sep-routes">/</span>
-  <a onclick="switchTab('routes')" id="nav-routes" class="active">ROUTES</a>
+  <a href="/routes" id="nav-routes" class="active">ROUTES</a>
   <span class="sep" id="sep-requests">/</span>
-  <a onclick="switchTab('requests')" id="nav-requests">REQUESTS</a>
+  <a href="/requests" id="nav-requests">REQUESTS</a>
   <span class="sep" id="sep-debug">/</span>
-  <a onclick="switchTab('debug')" id="nav-debug">DEBUG</a>
+  <a href="/debug" id="nav-debug">DEBUG</a>
   <span class="sep">/</span>
   <a href="/docs" id="nav-docs">DOCS</a>
   <span class="spacer"></span>
-  <span class="network-label" id="label-base">BASE TESTNET</span>
-  <span class="network-label" id="label-skale">SKALE TESTNET</span>
-  <div class="settings-wrapper">
-    <button class="settings-btn" onclick="toggleSettings()">
-      <svg class="cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-      SETTINGS
-    </button>
-    <div class="settings-dropdown" id="settings-dropdown">
-      <div class="settings-dropdown-header">
-        <span>SETTINGS</span>
-      </div>
-      <div class="settings-dropdown-body">
-        <div class="settings-section-label" style="border-top:none;padding-top:0">Existing API Provider</div>
+  <button class="settings-btn" onclick="toggleSettings()">
+    <svg class="cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    SETTINGS
+  </button>
+</nav>
+
+<!-- Settings Modal -->
+<div class="settings-backdrop" id="settings-backdrop" onclick="if(event.target===this)toggleSettings()">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <span>SETTINGS</span>
+      <button class="settings-modal-close" onclick="toggleSettings()">&times;</button>
+    </div>
+    <div class="settings-tabs">
+      <button class="settings-tab active" onclick="switchSettingsTab('api')">API Provider</button>
+      <button class="settings-tab" onclick="switchSettingsTab('base')">Base L2</button>
+      <button class="settings-tab" onclick="switchSettingsTab('skale')">SKALE</button>
+      <button class="settings-tab" onclick="switchSettingsTab('cdp')">CDP</button>
+    </div>
+    <div class="settings-modal-body">
+      <!-- API Provider -->
+      <div class="settings-tab-panel active" id="stab-api">
+        <div style="font-size:12px;color:var(--muted)">Connect your existing API provider to proxy requests through the gateway.</div>
+        <div class="field-group">
+          <label>Base URL</label>
+          <input type="text" id="input-api-base-url" placeholder="https://api.example.com" />
+        </div>
         <div class="field-group">
           <label>API Key</label>
           <input type="password" id="input-api-key" placeholder="sk-..." value="YOUR_API_KEY" />
         </div>
         <button class="test-btn" style="background:#1f6feb;border-color:#388bfd66" onclick="openImportModal();toggleSettings()">Import API Routes</button>
-        <div class="settings-section-label">Payment Settings</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">This is the wallet that pays for the BASE L2 fees and also receives the payments</div>
+      </div>
+      <!-- Base L2 -->
+      <div class="settings-tab-panel" id="stab-base">
+        <div style="font-size:12px;color:var(--muted)">Configure the Base L2 wallet that receives x402 payments and pays network fees.</div>
         <div class="field-group">
-          <label>Wallet Address (Base L2)</label>
+          <label>Wallet Address</label>
           <input type="text" id="input-wallet-address" placeholder="0x..." />
         </div>
         <div class="field-group">
-          <label>Base Network</label>
+          <label>Network</label>
           <select id="input-base-network">
             <option value="base-sepolia">base-sepolia (Testnet)</option>
             <option value="base">base (Mainnet)</option>
@@ -479,7 +543,10 @@
         </div>
         <button class="test-btn" onclick="testWallet()">Test Wallet Connection</button>
         <div class="test-result" id="test-wallet-result"></div>
-        <div class="settings-section-label">SKALE Settings</div>
+      </div>
+      <!-- SKALE -->
+      <div class="settings-tab-panel" id="stab-skale">
+        <div style="font-size:12px;color:var(--muted)">SKALE network settings for BITE threshold encryption (zero gas fees).</div>
         <div class="field-group">
           <label>SKALE Network</label>
           <select id="input-skale-network">
@@ -499,17 +566,31 @@
         <button class="test-btn" onclick="testSkale()">Test SKALE Connection</button>
         <div class="test-result" id="test-skale-result"></div>
       </div>
+      <!-- CDP -->
+      <div class="settings-tab-panel" id="stab-cdp">
+        <div style="font-size:12px;color:var(--muted)">Coinbase Developer Platform keys for agent wallet creation and USDC payments. Set these in your <code style="color:var(--accent)">.env</code> file.</div>
+        <div class="cdp-env-grid" id="cdp-env-grid">
+          <div class="cdp-env-row"><span class="cdp-env-name">CDP_API_KEY_ID</span><span class="cdp-env-status" id="cdp-st-key-id">Checking...</span></div>
+          <div class="cdp-env-row"><span class="cdp-env-name">CDP_API_KEY_SECRET</span><span class="cdp-env-status" id="cdp-st-key-secret">Checking...</span></div>
+          <div class="cdp-env-row"><span class="cdp-env-name">CDP_WALLET_SECRET</span><span class="cdp-env-status" id="cdp-st-wallet">Checking...</span></div>
+        </div>
+        <button class="test-btn" onclick="testCdpConnection()">Test CDP Connection</button>
+        <div class="test-result" id="test-cdp-result"></div>
+      </div>
     </div>
   </div>
-</nav>
+</div>
 
 <div class="layout">
   <!-- Left Panel -->
   <div class="panel-left">
     <div class="conn-box">
-      <div class="conn-header">
-        <span class="conn-dot loading" id="conn-dot"></span>
-        <span id="conn-label">Checking gateway...</span>
+      <div class="conn-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="conn-dot loading" id="conn-dot"></span>
+          <span id="conn-label">Checking gateway...</span>
+        </div>
+        <svg class="settings-gear" onclick="toggleSettings()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </div>
       <div class="conn-body">
         <div class="conn-row">
@@ -539,6 +620,30 @@
       </div>
     </div>
 
+    <div class="conn-box">
+      <div class="conn-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="conn-dot loading" id="platform-dot"></span>
+          <span>Platform Connections</span>
+        </div>
+        <svg class="settings-gear" onclick="toggleSettings()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="conn-body">
+        <div class="conn-row">
+          <span class="conn-label">Base L2</span>
+          <span class="conn-value" id="label-base">Not connected</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-label">SKALE</span>
+          <span class="conn-value" id="label-skale">Not connected</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-label">CDP</span>
+          <span class="conn-value" id="label-cdp">Not configured</span>
+        </div>
+      </div>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Revenue</div>
@@ -547,7 +652,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="footer-title">RequestTap Router v1.0</div>
+      <div class="footer-title" style="display:flex;align-items:center;gap:8px">RequestTap Router v1.0 <span style="font-size:8px;font-weight:600;letter-spacing:0.5px;padding:1px 4px;border:1px solid var(--muted);border-radius:3px;color:var(--muted);opacity:0.5">OPEN SOURCE</span></div>
       <div class="footer-links">
         <a href="https://x.com/RequestTap" target="_blank" title="X.com">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -566,17 +671,36 @@
   <!-- Right Panel -->
   <div class="panel-right">
     <!-- Import CTA shown when no routes -->
-    <div id="routes-import-cta" style="display:none;text-align:center;padding:80px 20px">
-      <div style="color:var(--muted);font-size:18px;margin-bottom:20px">No routes configured</div>
-      <button class="btn btn-accent" style="font-size:16px;padding:12px 28px" onclick="openImportModal()">Import API from OpenAPI Spec</button>
-      <div style="margin-top:16px">
-        <button class="btn btn-green" style="font-size:16px;padding:12px 28px" onclick="loadDemoSettings()">Load Demo Settings</button>
+    <div id="routes-import-cta" style="display:none;text-align:center;padding:60px 20px">
+      <div style="max-width:560px;margin:0 auto;text-align:left">
+        <h3 style="color:var(--text);font-size:22px;font-weight:700;margin:0 0 24px;border-bottom:1px solid var(--border);padding-bottom:10px">Quickstart</h3>
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;gap:16px">
+            <div style="min-width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
+            <div><span style="color:var(--text);font-size:16px;font-weight:600;display:block;line-height:36px">Setup credentials</span><span style="color:var(--muted);font-size:15px">Copy <code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:14px">.env.example</code> and set your project secrets</span></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="min-width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div>
+            <div><span style="color:var(--text);font-size:16px;font-weight:600;display:block;line-height:36px">Import your API routes</span><span style="color:var(--muted);font-size:15px"><a href="#" onclick="event.preventDefault();openImportModal()" style="color:var(--accent);text-decoration:underline">Import from an OpenAPI spec</a> or load demo routes below</span></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="min-width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div>
+            <div><span style="color:var(--text);font-size:16px;font-weight:600;display:block;line-height:36px">Set your prices</span><span style="color:var(--muted);font-size:15px">Choose how much USDC to charge per request on each route</span></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="min-width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center">4</div>
+            <div><span style="color:var(--text);font-size:16px;font-weight:600;display:block;line-height:36px">Share your gateway URL</span><span style="color:var(--muted);font-size:15px">Agents connect, pay with x402, and get proxied to your API</span></div>
+          </div>
+        </div>
+        <div style="margin-top:28px">
+          <button class="btn btn-green" style="font-size:16px;padding:12px 24px" onclick="loadDemoSettings()">Load Demo Settings</button>
+        </div>
       </div>
     </div>
 
     <!-- Routes Tab -->
     <div id="tab-routes">
-      <div class="panel-header">
+      <div class="panel-header" id="routes-toolbar">
         <h2>Routes</h2>
         <div style="display:flex;gap:8px;align-items:center">
           <div id="global-price-form" style="display:none;display:none;align-items:center;gap:6px">
@@ -641,12 +765,19 @@
         <div style="display:flex;gap:8px;align-items:center">
           <span id="debug-summary" class="mono" style="font-size:13px"></span>
           <button class="btn btn-green" onclick="runAllTests()">Run All Tests</button>
+          <button class="btn" onclick="toggleAllSections()" id="btn-toggle-sections">Expand All</button>
           <button class="btn" onclick="clearAllTests()">Clear Results</button>
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Gateway Core</h3>
+      <div class="debug-section collapsed" data-section="core">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Gateway Core <span class="debug-section-status" id="ss-core"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('core')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-health">
             <div class="debug-card-header"><span class="debug-card-title">Health Check</span><button class="btn btn-sm" onclick="testHealthCheck()">Run</button></div>
@@ -686,8 +817,51 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Idempotency</h3>
+      <div class="debug-section collapsed" data-section="e2e">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Gateway E2E <span class="debug-section-status" id="ss-e2e"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('e2e')">Run Section</button>
+
+          </div>
+        </div>
+        <div class="debug-cards">
+          <div class="debug-card" id="debug-e2e-pipeline">
+            <div class="debug-card-header"><span class="debug-card-title">E2E Pipeline</span><button class="btn btn-sm" onclick="testE2ePipeline()">Run</button></div>
+            <div class="debug-card-desc">Create temp $0 route &rarr; request &rarr; verify response + receipt &rarr; cleanup</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-e2e-receipt">
+            <div class="debug-card-header"><span class="debug-card-title">Receipt Lookup</span><button class="btn btn-sm" onclick="testE2eReceipt()">Run</button></div>
+            <div class="debug-card-desc">Query /admin/receipts for the E2E request &mdash; verify SUCCESS receipt</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-e2e-hash">
+            <div class="debug-card-header"><span class="debug-card-title">Response Hash</span><button class="btn btn-sm" onclick="testE2eHash()">Run</button></div>
+            <div class="debug-card-desc">Verify receipt response_hash is valid keccak256 (0x + 64 hex)</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-e2e-402">
+            <div class="debug-card-header"><span class="debug-card-title">Payment Challenge</span><button class="btn btn-sm" onclick="testE2e402()">Run</button></div>
+            <div class="debug-card-desc">Create temp $0.01 route &rarr; hit without payment &rarr; expect 402 &rarr; cleanup</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-e2e-skale">
+            <div class="debug-card-header"><span class="debug-card-title">SKALE Anchor</span><button class="btn btn-sm" onclick="testE2eSkale()">Run</button></div>
+            <div class="debug-card-desc">Store test hash on SKALE via admin endpoint &mdash; skip if not configured</div>
+            <div class="debug-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section collapsed" data-section="idempotency">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Idempotency <span class="debug-section-status" id="ss-idempotency"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('idempotency')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-idempotency">
             <div class="debug-card-header"><span class="debug-card-title">Replay Detection</span><button class="btn btn-sm" onclick="testIdempotency()">Run</button></div>
@@ -697,8 +871,14 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Payment</h3>
+      <div class="debug-section collapsed" data-section="payment">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Payment <span class="debug-section-status" id="ss-payment"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('payment')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-payment-402">
             <div class="debug-card-header"><span class="debug-card-title">Payment Required</span><button class="btn btn-sm" onclick="testPaymentRequired()">Run</button></div>
@@ -708,8 +888,36 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">AP2 Mandate</h3>
+      <div class="debug-section collapsed" data-section="x402">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">x402 Upstream Probe <span class="debug-section-status" id="ss-x402"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('x402')">Run Section</button>
+
+          </div>
+        </div>
+        <div class="debug-cards">
+          <div class="debug-card" id="debug-x402-probe">
+            <div class="debug-card-header"><span class="debug-card-title">Block x402 Upstream</span><button class="btn btn-sm" onclick="testX402Probe()">Run</button></div>
+            <div class="debug-card-desc">POST /admin/routes with a known x402 upstream &mdash; expect 400 X402_UPSTREAM_BLOCKED</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-x402-skip">
+            <div class="debug-card-header"><span class="debug-card-title">Probe Opt-out Check</span><button class="btn btn-sm" onclick="testX402Skip()">Run</button></div>
+            <div class="debug-card-desc">RT_SKIP_X402_PROBE env var &mdash; should be unset (probe active)</div>
+            <div class="debug-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section collapsed" data-section="mandate">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">AP2 Mandate <span class="debug-section-status" id="ss-mandate"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('mandate')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-mandate-skipped">
             <div class="debug-card-header"><span class="debug-card-title">Mandate Accepted (No Mandate)</span><button class="btn btn-sm" onclick="testMandateSkipped()">Run</button></div>
@@ -724,8 +932,14 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Agent Blacklist</h3>
+      <div class="debug-section collapsed" data-section="blacklist">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Agent Blacklist <span class="debug-section-status" id="ss-blacklist"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('blacklist')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-blacklist-api">
             <div class="debug-card-header"><span class="debug-card-title">Blacklist API</span><button class="btn btn-sm" onclick="testBlacklistApi()">Run</button></div>
@@ -745,8 +959,14 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Receipts</h3>
+      <div class="debug-section collapsed" data-section="receipts">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Receipts <span class="debug-section-status" id="ss-receipts"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('receipts')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-receipts-stats">
             <div class="debug-card-header"><span class="debug-card-title">Stats</span><button class="btn btn-sm" onclick="testReceiptsStats()">Run</button></div>
@@ -766,8 +986,14 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Admin API</h3>
+      <div class="debug-section collapsed" data-section="admin">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Admin API <span class="debug-section-status" id="ss-admin"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('admin')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-admin-config">
             <div class="debug-card-header"><span class="debug-card-title">Gateway Config</span><button class="btn btn-sm" onclick="testAdminConfig()">Run</button></div>
@@ -787,8 +1013,14 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">Docs</h3>
+      <div class="debug-section collapsed" data-section="docs">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Docs <span class="debug-section-status" id="ss-docs"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('docs')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-openapi">
             <div class="debug-card-header"><span class="debug-card-title">OpenAPI Spec</span><button class="btn btn-sm" onclick="testOpenApiSpec()">Run</button></div>
@@ -798,8 +1030,14 @@
         </div>
       </div>
 
-      <div class="debug-section">
-        <h3 class="debug-section-title">SKALE</h3>
+      <div class="debug-section collapsed" data-section="skale">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">SKALE <span class="debug-section-status" id="ss-skale"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('skale')">Run Section</button>
+
+          </div>
+        </div>
         <div class="debug-cards">
           <div class="debug-card" id="debug-skale-rpc">
             <div class="debug-card-header"><span class="debug-card-title">RPC Connection</span><button class="btn btn-sm" onclick="testSkaleRpc()">Run</button></div>
@@ -809,6 +1047,28 @@
           <div class="debug-card" id="debug-skale-block">
             <div class="debug-card-header"><span class="debug-card-title">Latest Block</span><button class="btn btn-sm" onclick="testSkaleBlock()">Run</button></div>
             <div class="debug-card-desc">eth_blockNumber via /rpc-proxy &mdash; returns block number</div>
+            <div class="debug-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section collapsed" data-section="cdp">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">CDP (Coinbase Developer Platform) <span class="debug-section-status" id="ss-cdp"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('cdp')">Run Section</button>
+
+          </div>
+        </div>
+        <div class="debug-cards">
+          <div class="debug-card" id="debug-cdp-env">
+            <div class="debug-card-header"><span class="debug-card-title">Env Configured</span><button class="btn btn-sm" onclick="testCdpEnv()">Run</button></div>
+            <div class="debug-card-desc">Check CDP_API_KEY_ID, CDP_API_KEY_SECRET, CDP_WALLET_SECRET in .env</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-cdp-api">
+            <div class="debug-card-header"><span class="debug-card-title">API Reachable</span><button class="btn btn-sm" onclick="testCdpApi()">Run</button></div>
+            <div class="debug-card-desc">POST /cdp-check &mdash; validates CDP API connectivity</div>
             <div class="debug-result"></div>
           </div>
         </div>
@@ -886,17 +1146,65 @@
 // ── State ────────────────────────────────────────────────────────────
 let adminKey = localStorage.getItem('rt-admin-key') || '';
 let gatewayUrl = localStorage.getItem('rt-gateway-url') || '';
-let activeTab = 'routes';
+let activeTab = (() => {
+  const p = location.pathname.replace(/^\//, '');
+  return ['routes', 'requests', 'debug'].includes(p) ? p : 'routes';
+})();
 let allReceipts = [];
 let pollTimer = null;
 let dashboardConfig = null;
 let routeGroups = [];
 
+// ── Env status (set/unset booleans from server) ─────────────────────
+let envStatus = {};
+async function loadEnvStatus() {
+  try {
+    const r = await fetch('/env-status');
+    if (r.ok) envStatus = await r.json();
+  } catch {}
+  updateNetworkLabels();
+  updateCdpStatus();
+}
+
+function updateCdpStatus() {
+  const pairs = [
+    ['cdp-st-key-id', envStatus.cdpApiKeyId],
+    ['cdp-st-key-secret', envStatus.cdpApiKeySecret],
+    ['cdp-st-wallet', envStatus.cdpWalletSecret],
+  ];
+  pairs.forEach(([id, isSet]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = isSet ? 'Set' : 'Not set';
+    el.className = 'cdp-env-status ' + (isSet ? 'set' : 'missing');
+  });
+}
+
+async function testCdpConnection() {
+  const el = document.getElementById('test-cdp-result');
+  el.textContent = 'Testing...'; el.style.color = 'var(--muted)';
+  try {
+    const r = await fetch('/cdp-check', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const d = await r.json();
+    if (d.ok) {
+      el.textContent = 'Connected — ' + (d.message || 'OK');
+      el.style.color = 'var(--green)';
+    } else {
+      el.textContent = 'Failed — ' + (d.error || 'Unknown error');
+      el.style.color = 'var(--red)';
+    }
+  } catch (e) {
+    el.textContent = 'Error: ' + e.message;
+    el.style.color = 'var(--red)';
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────
 (function init() {
+  switchTab(activeTab, false);
   refreshAll();
-  loadRoutes();
   startPolling();
+  loadEnvStatus();
 
   // Provider settings listeners
   let saveTimer = null;
@@ -904,7 +1212,7 @@ let routeGroups = [];
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveDashboardConfig, 500);
   }
-  ['input-wallet-address', 'input-api-key'].forEach(id => {
+  ['input-wallet-address', 'input-api-key', 'input-api-base-url'].forEach(id => {
     document.getElementById(id).addEventListener('input', debouncedSave);
   });
   ['input-skale-rpc', 'input-skale-contract'].forEach(id => {
@@ -938,6 +1246,13 @@ async function api(path, opts = {}) {
 // ── Dashboard Config ─────────────────────────────────────────────────
 async function loadDashboardConfig() {
   try {
+    // Fetch the gateway URL to use as default Base URL
+    let gatewayUrl = '';
+    try {
+      const gw = await fetch('/config/gateway-url');
+      if (gw.ok) gatewayUrl = (await gw.json()).gatewayUrl || '';
+    } catch {}
+
     const r = await api('/admin/dashboard-config');
     if (!r.ok) return;
     dashboardConfig = await r.json();
@@ -949,6 +1264,7 @@ async function loadDashboardConfig() {
     document.getElementById('input-skale-rpc').value = dashboardConfig.skaleRpcUrl || '';
     document.getElementById('input-skale-contract').value = dashboardConfig.skaleBiteContract || '';
     document.getElementById('input-api-key').value = dashboardConfig.apiKey || '';
+    document.getElementById('input-api-base-url').value = dashboardConfig.apiBaseUrl || gatewayUrl;
     updateNetworkLabels();
   } catch {}
 }
@@ -962,6 +1278,7 @@ async function saveDashboardConfig() {
     skaleRpcUrl: document.getElementById('input-skale-rpc').value.trim(),
     skaleBiteContract: document.getElementById('input-skale-contract').value.trim(),
     apiKey: document.getElementById('input-api-key').value.trim(),
+    apiBaseUrl: document.getElementById('input-api-base-url').value.trim(),
     routeGroups: routeGroups,
   };
   try {
@@ -983,28 +1300,42 @@ function updateNetworkLabels() {
   const skaleLabel = document.getElementById('label-skale');
   const baseIsMainnet = baseNet === 'base';
   const skaleIsMainnet = skaleNet === 'mainnet';
-  const baseName = baseIsMainnet ? 'BASE MAINNET' : 'BASE TESTNET';
-  const skaleName = skaleIsMainnet ? 'SKALE MAINNET' : 'SKALE TESTNET';
+  const baseNetName = baseIsMainnet ? 'Mainnet' : 'Testnet';
+  const skaleNetName = skaleIsMainnet ? 'Mainnet' : 'Testnet';
 
   const baseConnected = localStorage.getItem('rt-base-connected') === baseNet;
   const skaleConnected = localStorage.getItem('rt-skale-connected') === skaleNet + '|' + document.getElementById('input-skale-rpc').value;
 
-  baseLabel.textContent = baseName + (baseConnected ? ' ✓' : '');
-  baseLabel.className = 'network-label ' + (baseConnected ? 'connected' : (baseIsMainnet ? 'mainnet' : 'testnet'));
-  skaleLabel.textContent = skaleName + (skaleConnected ? ' ✓' : '');
-  skaleLabel.className = 'network-label ' + (skaleConnected ? 'connected' : (skaleIsMainnet ? 'mainnet' : 'testnet'));
+  baseLabel.textContent = baseConnected ? 'Connected (' + baseNetName + ')' : 'Not connected';
+  baseLabel.style.color = baseConnected ? 'var(--green)' : 'var(--orange)';
+
+  const cdpLabel = document.getElementById('label-cdp');
+  const cdpConfigured = envStatus.cdpApiKeyId && envStatus.cdpApiKeySecret;
+  cdpLabel.textContent = cdpConfigured ? 'Connected' : 'Not configured';
+  cdpLabel.style.color = cdpConfigured ? 'var(--green)' : 'var(--orange)';
+
+  skaleLabel.textContent = skaleConnected ? 'Connected (' + skaleNetName + ')' : 'Not connected';
+  skaleLabel.style.color = skaleConnected ? 'var(--green)' : 'var(--orange)';
+
+  const platformDot = document.getElementById('platform-dot');
+  if (platformDot) {
+    const allGreen = baseConnected && cdpConfigured && skaleConnected;
+    platformDot.className = 'conn-dot ' + (allGreen ? 'online' : 'loading');
+  }
 }
 updateNetworkLabels();
 
 // ── Settings ─────────────────────────────────────────────────────────
 function toggleSettings() {
-  document.getElementById('settings-dropdown').classList.toggle('open');
+  document.getElementById('settings-backdrop').classList.toggle('open');
 }
-document.addEventListener('click', (e) => {
-  if (!document.querySelector('.settings-wrapper').contains(e.target)) {
-    document.getElementById('settings-dropdown').classList.remove('open');
-  }
-});
+
+function switchSettingsTab(id) {
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.settings-tab[onclick*="'${id}'"]`).classList.add('active');
+  document.getElementById('stab-' + id).classList.add('active');
+}
 
 async function testWallet() {
   const el = document.getElementById('test-wallet-result');
@@ -1024,7 +1355,7 @@ async function testWallet() {
   el.style.color = 'var(--muted)';
   try {
     const explorerBase = network === 'base' ? 'https://basescan.org' : 'https://sepolia.basescan.org';
-    el.innerHTML = `Valid address on ${network === 'base' ? 'Base Mainnet' : 'Base Sepolia'} &mdash; <a class="tx-link" href="${explorerBase}/address/${addr}" target="_blank">View on Explorer</a>`;
+    el.innerHTML = `Valid address on ${network === 'base' ? 'Base Mainnet' : 'Base Testnet'} &mdash; <a class="tx-link" href="${explorerBase}/address/${addr}" target="_blank">View on Explorer</a>`;
     el.style.color = 'var(--green)';
     localStorage.setItem('rt-base-connected', network);
     updateNetworkLabels();
@@ -1071,7 +1402,7 @@ async function testSkale() {
 }
 
 // ── Tab switching ────────────────────────────────────────────────────
-function switchTab(tab) {
+function switchTab(tab, pushState) {
   activeTab = tab;
   ['routes', 'requests', 'debug'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
@@ -1080,7 +1411,27 @@ function switchTab(tab) {
   document.getElementById('routes-import-cta').style.display = 'none';
   if (tab === 'routes') loadRoutes();
   else if (tab === 'requests') loadRequests();
+  if (pushState !== false) history.pushState({ tab }, '', '/' + tab);
+  document.title = tab.charAt(0).toUpperCase() + tab.slice(1) + ' - RequestTap Router';
 }
+
+// URL-based navigation
+function getTabFromPath() {
+  const path = location.pathname.replace(/^\//, '');
+  return ['routes', 'requests', 'debug'].includes(path) ? path : 'routes';
+}
+window.addEventListener('popstate', () => switchTab(getTabFromPath(), false));
+
+// Intercept nav clicks for SPA navigation (skip /docs which is a separate page)
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('nav a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (['/routes', '/requests', '/debug'].includes(href)) {
+    e.preventDefault();
+    switchTab(href.slice(1));
+  }
+});
 
 // ── Polling ──────────────────────────────────────────────────────────
 function startPolling() {
@@ -1161,23 +1512,15 @@ async function loadRoutes() {
     const importCta = document.getElementById('routes-import-cta');
     const navRoutes = document.getElementById('nav-routes');
     const sepRoutes = document.getElementById('sep-routes');
+    const routesToolbar = document.getElementById('routes-toolbar');
     if (d.routes.length === 0) {
       container.innerHTML = '';
-      ['routes', 'requests'].forEach(t => {
-        document.getElementById('tab-' + t).style.display = 'none';
-      });
+      routesToolbar.style.display = 'none';
       if (activeTab !== 'debug') importCta.style.display = 'block';
-      navRoutes.style.display = 'none';
-      sepRoutes.style.display = 'none';
-      document.getElementById('nav-requests').style.display = 'none';
-      document.getElementById('sep-requests').style.display = 'none';
       return;
     }
+    routesToolbar.style.display = '';
     importCta.style.display = 'none';
-    navRoutes.style.display = '';
-    sepRoutes.style.display = '';
-    document.getElementById('nav-requests').style.display = '';
-    document.getElementById('sep-requests').style.display = '';
     // Split into enabled and disabled routes
     const enabledRoutes = d.routes.filter(r => !r.restricted);
     const disabledRoutes = d.routes.filter(r => r.restricted === true);
@@ -1375,6 +1718,7 @@ async function loadDemoSettings() {
     { method: 'GET', path: '/api/v1/search/:query', tool_id: 'search', price_usdc: '0.01', description: 'Search the web', provider: { provider_id: 'acme-data', backend_url: 'https://api.acme.com', auth: { header: 'Authorization', value: 'Bearer ' + demoKey } } },
     { method: 'GET', path: '/api/v1/quote', tool_id: 'quote', price_usdc: '0.01', description: 'Get a stock quote', provider: { provider_id: 'acme-data', backend_url: 'https://api.acme.com', auth: { header: 'Authorization', value: 'Bearer ' + demoKey } } },
     { method: 'POST', path: '/api/v1/analysis', tool_id: 'analysis', price_usdc: '0.05', description: 'Run data analysis', provider: { provider_id: 'acme-data', backend_url: 'https://api.acme.com', auth: { header: 'Authorization', value: 'Bearer ' + demoKey } } },
+    { method: 'GET', path: '/api/v1/internal/restricted', tool_id: 'restricted', price_usdc: '0.00', description: 'Restricted test endpoint (disabled)', restricted: true, provider: { provider_id: 'acme-data', backend_url: 'https://api.acme.com', auth: { header: 'Authorization', value: 'Bearer ' + demoKey } } },
   ];
 
   // Add demo routes
@@ -1385,6 +1729,7 @@ async function loadDemoSettings() {
   }
 
   // Set demo config
+  document.getElementById('input-api-base-url').value = 'http://localhost:4402';
   document.getElementById('input-api-key').value = demoKey;
   document.getElementById('input-wallet-address').value = '0x1234567890abcdef1234567890abcdef12345678';
   document.getElementById('input-base-network').value = 'base-sepolia';
@@ -1400,11 +1745,21 @@ async function loadDemoSettings() {
 
 // ── Import API ───────────────────────────────────────────────────────
 function openImportModal() {
-  // Preload auth from settings
+  // Preload from API Provider settings
   const apiKey = document.getElementById('input-api-key').value.trim();
+  const baseUrl = document.getElementById('input-api-base-url').value.trim();
   if (apiKey) {
     document.getElementById('import-auth-header').value = 'Authorization';
     document.getElementById('import-auth-value').value = 'Bearer ' + apiKey;
+  }
+  if (baseUrl && !document.getElementById('import-backend-url').value.trim()) {
+    document.getElementById('import-backend-url').value = baseUrl;
+    try {
+      const u = new URL(baseUrl);
+      if (!document.getElementById('import-provider-id').value.trim()) {
+        document.getElementById('import-provider-id').value = u.hostname.replace(/\./g, '-');
+      }
+    } catch {}
   }
   document.getElementById('import-modal').classList.add('open');
 }
@@ -1663,24 +2018,66 @@ function setTestResult(id, status, body) {
     `<span class="debug-status-badge ${status}">${status.toUpperCase()}</span><pre class="debug-body">${esc(bodyStr)}</pre>`;
   debugCounts[status] = (debugCounts[status] || 0) + 1;
   updateDebugSummary();
+  updateSectionStatus(card);
+}
+
+function updateSectionStatus(card) {
+  const section = card.closest('.debug-section');
+  if (!section) return;
+  const key = section.dataset.section;
+  const el = document.getElementById('ss-' + key);
+  if (!el) return;
+  const cards = section.querySelectorAll('.debug-card');
+  let p = 0, f = 0, s = 0, r = 0;
+  cards.forEach(c => {
+    if (c.classList.contains('pass')) p++;
+    else if (c.classList.contains('fail')) f++;
+    else if (c.classList.contains('skip')) s++;
+    else if (c.classList.contains('running')) r++;
+  });
+  const parts = [];
+  if (p) parts.push(`<span class="ss-pass">${p} PASS</span>`);
+  if (f) parts.push(`<span class="ss-fail">${f} FAIL</span>`);
+  if (s) parts.push(`<span class="ss-skip">${s} SKIP</span>`);
+  if (r) parts.push(`<span class="ss-running">${r} RUNNING</span>`);
+  el.innerHTML = parts.join(' · ');
+}
+
+let debugFilter = null;
+
+function toggleDebugFilter(status) {
+  const containers = document.querySelectorAll('.debug-cards');
+  if (debugFilter === status) {
+    debugFilter = null;
+    containers.forEach(c => c.classList.remove('filter-pass', 'filter-fail', 'filter-skip'));
+  } else {
+    debugFilter = status;
+    containers.forEach(c => { c.classList.remove('filter-pass', 'filter-fail', 'filter-skip'); c.classList.add('filter-' + status); });
+  }
+  updateDebugSummary();
 }
 
 function updateDebugSummary() {
   const el = document.getElementById('debug-summary');
   const parts = [];
-  if (debugCounts.pass) parts.push(`<span style="color:var(--green)">${debugCounts.pass} PASS</span>`);
-  if (debugCounts.fail) parts.push(`<span style="color:var(--red)">${debugCounts.fail} FAIL</span>`);
-  if (debugCounts.skip) parts.push(`<span style="color:var(--orange)">${debugCounts.skip} SKIP</span>`);
+  const style = s => `cursor:pointer;${debugFilter && debugFilter !== s ? 'opacity:0.4' : ''}`;
+  if (debugCounts.pass) parts.push(`<span style="color:var(--green);${style('pass')}" onclick="toggleDebugFilter('pass')">${debugCounts.pass} PASS</span>`);
+  if (debugCounts.fail) parts.push(`<span style="color:var(--red);${style('fail')}" onclick="toggleDebugFilter('fail')">${debugCounts.fail} FAIL</span>`);
+  if (debugCounts.skip) parts.push(`<span style="color:var(--orange);${style('skip')}" onclick="toggleDebugFilter('skip')">${debugCounts.skip} SKIP</span>`);
   el.innerHTML = parts.join(' &middot; ');
 }
 
 function clearAllTests() {
   debugCounts = { pass: 0, fail: 0, skip: 0 };
+  debugFilter = null;
+  document.querySelectorAll('.debug-cards').forEach(c => c.classList.remove('filter-pass', 'filter-fail', 'filter-skip'));
   document.querySelectorAll('.debug-card').forEach(card => {
     card.className = 'debug-card';
     card.querySelector('.debug-result').innerHTML = '';
   });
   document.getElementById('debug-summary').innerHTML = '';
+  document.querySelectorAll('.debug-section-status').forEach(el => el.innerHTML = '');
+  e2eState = { receipt: null };
 }
 
 function debugGetFirstEnabled(routes) { return routes.find(r => !r.restricted); }
@@ -1694,32 +2091,55 @@ async function debugLoadContext() {
   return { routes, cfg };
 }
 
+function toggleSection(header) {
+  header.closest('.debug-section').classList.toggle('collapsed');
+  updateToggleAllLabel();
+}
+
+function toggleAllSections() {
+  const sections = document.querySelectorAll('.debug-section');
+  const allCollapsed = [...sections].every(s => s.classList.contains('collapsed'));
+  sections.forEach(s => { if (allCollapsed) s.classList.remove('collapsed'); else s.classList.add('collapsed'); });
+  updateToggleAllLabel();
+}
+
+function updateToggleAllLabel() {
+  const btn = document.getElementById('btn-toggle-sections');
+  const sections = document.querySelectorAll('.debug-section');
+  const allCollapsed = [...sections].every(s => s.classList.contains('collapsed'));
+  btn.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
+// Section registry: key → function that returns array of test runners
+const debugSections = {
+  core:       (r, c) => [testHealthCheck, () => testRouteMatch(r,c), () => testRouteNotFound(c), () => testRestrictedRoute(r,c), () => testAuth401(r,c), () => testAuthValid(r,c)],
+  e2e:        (r, c) => [() => testE2ePipeline(c), testE2eReceipt, testE2eHash, () => testE2e402(c), testE2eSkale],
+  idempotency:(r, c) => [() => testIdempotency(r,c)],
+  payment:    (r, c) => [() => testPaymentRequired(r,c)],
+  x402:       ()     => [testX402Probe, testX402Skip],
+  mandate:    (r, c) => [() => testMandateSkipped(r,c), () => testMandateRejected(r,c)],
+  blacklist:  (r, c) => [testBlacklistApi, () => testAgentAllowed(r,c), () => testAgentBlocked(r,c)],
+  receipts:   ()     => [testReceiptsStats, testReceiptsList, testReceiptsFilter],
+  admin:      ()     => [testAdminConfig, testDashboardConfigTest, testAdminRoutes],
+  docs:       ()     => [testOpenApiSpec],
+  skale:      (r, c) => [() => testSkaleRpc(c), () => testSkaleBlock(c)],
+  cdp:        ()     => [testCdpEnv, testCdpApi],
+};
+
+async function runSection(key) {
+  const { routes, cfg } = await debugLoadContext();
+  const fns = debugSections[key](routes, cfg);
+  for (const fn of fns) await fn();
+}
+
 async function runAllTests() {
   clearAllTests();
   const { routes, cfg } = await debugLoadContext();
-  await testHealthCheck();
-  await testRouteMatch(routes, cfg);
-  await testRouteNotFound();
-  await testRestrictedRoute(routes, cfg);
-  await testAuth401(routes, cfg);
-  await testAuthValid(routes, cfg);
-  // Rate Limit excluded — fires 105 requests
-  await testIdempotency(routes, cfg);
-  await testPaymentRequired(routes, cfg);
-  await testMandateSkipped(routes, cfg);
-  await testMandateRejected(routes, cfg);
-  await testBlacklistApi();
-  await testAgentAllowed(routes, cfg);
-  await testAgentBlocked(routes, cfg);
-  await testReceiptsStats();
-  await testReceiptsList();
-  await testReceiptsFilter();
-  await testAdminConfig();
-  await testDashboardConfigTest();
-  await testAdminRoutes();
-  await testOpenApiSpec();
-  await testSkaleRpc(cfg);
-  await testSkaleBlock(cfg);
+  const sectionOrder = ['core','e2e','idempotency','payment','x402','mandate','blacklist','receipts','admin','docs','skale','cdp'];
+  for (const key of sectionOrder) {
+    const fns = debugSections[key](routes, cfg);
+    for (const fn of fns) await fn();
+  }
 }
 
 async function testHealthCheck() {
@@ -1747,10 +2167,13 @@ async function testRouteMatch(routes, cfg) {
   } catch (e) { setTestResult('route-match', 'fail', { error: e.message }); }
 }
 
-async function testRouteNotFound() {
+async function testRouteNotFound(cfg) {
+  if (!cfg) { const ctx = await debugLoadContext(); cfg = ctx.cfg; }
   setTestRunning('route-404');
   try {
-    const r = await debugApiFetch('/api/v1/__nonexistent__');
+    const headers = {};
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch('/api/v1/__nonexistent__', { headers });
     const text = await r.text();
     let d; try { d = JSON.parse(text); } catch { d = text; }
     setTestResult('route-404', r.status === 404 ? 'pass' : 'fail', { status: r.status, body: d });
@@ -2052,6 +2475,210 @@ async function testSkaleBlock(cfg) {
       setTestResult('skale-block', 'pass', { blockNumber: parseInt(d.result, 16), raw: d.result });
     } else { setTestResult('skale-block', 'fail', d); }
   } catch (e) { setTestResult('skale-block', 'fail', { error: e.message }); }
+}
+
+async function testX402Probe() {
+  setTestRunning('x402-probe');
+  try {
+    // First check if probe is disabled
+    const envR = await fetch('/env-status');
+    const env = await envR.json();
+    if (env.rtSkipX402Probe) {
+      setTestResult('x402-probe', 'skip', 'RT_SKIP_X402_PROBE is set — probe disabled');
+      return;
+    }
+    // Try to register a route pointing at our fake x402 upstream
+    const dashboardPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+    const testRoute = {
+      tool_id: '__x402_probe_test__',
+      path: '/api/v1/__x402_probe_test__',
+      method: 'GET',
+      description: 'Temporary probe test route (will be rejected)',
+      price_usdc: '0',
+      provider: { provider_id: '__x402_probe_test__', backend_url: `http://localhost:${dashboardPort}/x402-test-upstream` },
+    };
+    const r = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    const d = await r.json();
+    if (r.status === 400 && d.reason === 'X402_UPSTREAM_BLOCKED') {
+      setTestResult('x402-probe', 'pass', { status: 400, reason: d.reason, message: d.error });
+    } else if (r.status === 200 || r.status === 201) {
+      // Route was accepted — probe didn't catch it; clean up
+      try { await api('/admin/routes/__x402_probe_test__', { method: 'DELETE' }); } catch {}
+      setTestResult('x402-probe', 'fail', { note: 'Route was accepted — probe did not detect x402 upstream', body: d });
+    } else {
+      setTestResult('x402-probe', 'fail', { status: r.status, body: d });
+    }
+  } catch (e) { setTestResult('x402-probe', 'fail', { error: e.message }); }
+}
+
+async function testX402Skip() {
+  setTestRunning('x402-skip');
+  try {
+    const r = await fetch('/env-status');
+    const d = await r.json();
+    if (d.rtSkipX402Probe) {
+      setTestResult('x402-skip', 'fail', { RT_SKIP_X402_PROBE: true, note: 'Probe is disabled — x402 wrapping protection inactive' });
+    } else {
+      setTestResult('x402-skip', 'pass', { RT_SKIP_X402_PROBE: false, note: 'Probe is active — x402 upstream wrapping blocked' });
+    }
+  } catch (e) { setTestResult('x402-skip', 'fail', { error: e.message }); }
+}
+
+async function testCdpEnv() {
+  setTestRunning('cdp-env');
+  try {
+    const r = await fetch('/env-status');
+    const d = await r.json();
+    const missing = [];
+    if (!d.cdpApiKeyId) missing.push('CDP_API_KEY_ID');
+    if (!d.cdpApiKeySecret) missing.push('CDP_API_KEY_SECRET');
+    if (!d.cdpWalletSecret) missing.push('CDP_WALLET_SECRET');
+    if (missing.length === 0) {
+      setTestResult('cdp-env', 'pass', { cdpApiKeyId: true, cdpApiKeySecret: true, cdpWalletSecret: true });
+    } else {
+      setTestResult('cdp-env', 'fail', { missing });
+    }
+  } catch (e) { setTestResult('cdp-env', 'fail', { error: e.message }); }
+}
+
+async function testCdpApi() {
+  setTestRunning('cdp-api');
+  try {
+    const r = await fetch('/cdp-check', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const d = await r.json();
+    if (d.ok) {
+      setTestResult('cdp-api', 'pass', d);
+    } else {
+      setTestResult('cdp-api', 'fail', d);
+    }
+  } catch (e) { setTestResult('cdp-api', 'fail', { error: e.message }); }
+}
+
+// ── E2E Tests ──────────────────────────────────────────────────────
+let e2eState = { receipt: null };
+
+async function testE2ePipeline(cfg) {
+  if (!cfg) { const ctx = await debugLoadContext(); cfg = ctx.cfg; }
+  setTestRunning('e2e-pipeline');
+  const dashboardPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+  const testRoute = {
+    tool_id: '__e2e_test__',
+    path: '/api/v1/__e2e_test__',
+    method: 'GET',
+    price_usdc: '0',
+    provider: { provider_id: '__e2e__', backend_url: `http://localhost:${dashboardPort}/e2e-test-upstream` },
+    _skip_ssrf: true,
+  };
+  try {
+    // Create temp route (skip SSRF — debug routes target localhost)
+    const createR = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    if (!createR.ok) {
+      const err = await createR.json().catch(() => ({}));
+      setTestResult('e2e-pipeline', 'fail', { step: 'create route', status: createR.status, body: err });
+      return;
+    }
+
+    // Hit the route
+    const headers = {};
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch('/api/v1/__e2e_test__', { headers });
+    const body = await r.text();
+    let d; try { d = JSON.parse(body); } catch { d = body; }
+
+    // Get receipt from header
+    const receiptHeader = r.headers.get('x-rt-receipt');
+    let receipt = null;
+    if (receiptHeader) {
+      try { receipt = JSON.parse(atob(receiptHeader)); } catch {}
+    }
+    e2eState.receipt = receipt;
+
+    // Cleanup
+    try { await api('/admin/routes/__e2e_test__', { method: 'DELETE' }); } catch {}
+
+    // Validate
+    if (r.status === 200 && d?.ok === true && receipt && receipt.outcome === 'SUCCESS') {
+      setTestResult('e2e-pipeline', 'pass', { status: r.status, response: d, receipt_outcome: receipt.outcome, receipt_id: receipt.request_id });
+    } else {
+      setTestResult('e2e-pipeline', 'fail', { status: r.status, response: d, receipt, note: !receiptHeader ? 'Missing x-rt-receipt header' : 'Unexpected result' });
+    }
+  } catch (e) {
+    try { await api('/admin/routes/__e2e_test__', { method: 'DELETE' }); } catch {}
+    setTestResult('e2e-pipeline', 'fail', { error: e.message });
+  }
+}
+
+async function testE2eReceipt() {
+  setTestRunning('e2e-receipt');
+  if (!e2eState.receipt) { setTestResult('e2e-receipt', 'skip', 'Pipeline test did not run — no receipt available'); return; }
+  try {
+    const r = await api('/admin/receipts?tool_id=__e2e_test__&limit=1');
+    const d = await r.json();
+    const found = r.ok && Array.isArray(d.receipts) && d.receipts.length > 0 && d.receipts[0].outcome === 'SUCCESS';
+    setTestResult('e2e-receipt', found ? 'pass' : 'fail', d);
+  } catch (e) { setTestResult('e2e-receipt', 'fail', { error: e.message }); }
+}
+
+async function testE2eHash() {
+  setTestRunning('e2e-hash');
+  if (!e2eState.receipt) { setTestResult('e2e-hash', 'skip', 'Pipeline test did not run — no receipt available'); return; }
+  const hash = e2eState.receipt.response_hash;
+  const valid = typeof hash === 'string' && /^0x[0-9a-f]{64}$/i.test(hash);
+  setTestResult('e2e-hash', valid ? 'pass' : 'fail', { response_hash: hash, valid });
+}
+
+async function testE2e402(cfg) {
+  if (!cfg) { const ctx = await debugLoadContext(); cfg = ctx.cfg; }
+  setTestRunning('e2e-402');
+  if (!cfg?.payToAddress) { setTestResult('e2e-402', 'skip', 'No pay-to address configured (x402 disabled)'); return; }
+  const dashboardPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+  const testRoute = {
+    tool_id: '__e2e_pay_test__',
+    path: '/api/v1/__e2e_pay_test__',
+    method: 'GET',
+    price_usdc: '0.01',
+    provider: { provider_id: '__e2e__', backend_url: `http://localhost:${dashboardPort}/e2e-test-upstream` },
+    _skip_ssrf: true,
+  };
+  try {
+    const createR = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    if (!createR.ok) {
+      const err = await createR.json().catch(() => ({}));
+      setTestResult('e2e-402', 'fail', { step: 'create route', status: createR.status, body: err });
+      return;
+    }
+
+    const headers = {};
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch('/api/v1/__e2e_pay_test__', { headers });
+    const body = await r.text();
+    let d; try { d = JSON.parse(body); } catch { d = body; }
+
+    // Cleanup
+    try { await api('/admin/routes/__e2e_pay_test__', { method: 'DELETE' }); } catch {}
+
+    setTestResult('e2e-402', r.status === 402 ? 'pass' : 'fail', { status: r.status, body: d });
+  } catch (e) {
+    try { await api('/admin/routes/__e2e_pay_test__', { method: 'DELETE' }); } catch {}
+    setTestResult('e2e-402', 'fail', { error: e.message });
+  }
+}
+
+async function testE2eSkale() {
+  setTestRunning('e2e-skale');
+  try {
+    const envR = await fetch('/env-status');
+    const env = await envR.json();
+    if (!env.skalePrivateKey) { setTestResult('e2e-skale', 'skip', 'SKALE not configured (no private key)'); return; }
+
+    const r = await api('/admin/skale/test-anchor', { method: 'POST', body: JSON.stringify({}) });
+    const d = await r.json();
+    if (r.ok && d.txHash && d.txHash.startsWith('0x')) {
+      setTestResult('e2e-skale', 'pass', { txHash: d.txHash, intentId: d.intentId });
+    } else {
+      setTestResult('e2e-skale', 'fail', d);
+    }
+  } catch (e) { setTestResult('e2e-skale', 'fail', { error: e.message }); }
 }
 </script>
 </body>

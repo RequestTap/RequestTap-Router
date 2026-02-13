@@ -4,7 +4,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { v4 as uuidv4 } from "uuid";
 import type { GatewayConfig } from "./config.js";
-import { type RouteRule, type CompiledRule, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
+import { type RouteRule, type CompiledRule, type CompileOptions, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
 import { InMemoryReplayStore } from "./replay.js";
 import { SpendTracker } from "./ap2.js";
 import { createIdempotencyMiddleware } from "./middleware/idempotency.js";
@@ -44,7 +44,7 @@ const INTERNAL_HEADERS = new Set<string>([
 export interface RouteManager {
   getRoutes(): RouteRule[];
   getCompiled(): CompiledRule[];
-  addRoute(rule: RouteRule): void;
+  addRoute(rule: RouteRule, opts?: CompileOptions): void;
   removeRoute(toolId: string): boolean;
 }
 
@@ -119,9 +119,14 @@ export function createApp({ config, routes }: CreateAppOptions) {
   const routeManager: RouteManager = {
     getRoutes: () => [...currentRoutes],
     getCompiled: () => currentCompiled,
-    addRoute(rule: RouteRule) {
-      currentRoutes.push(rule);
-      currentCompiled = compileRoutes(currentRoutes);
+    addRoute(rule: RouteRule, opts?: CompileOptions) {
+      const existing = currentRoutes.findIndex((r) => r.tool_id === rule.tool_id);
+      if (existing !== -1) {
+        currentRoutes[existing] = rule;
+      } else {
+        currentRoutes.push(rule);
+      }
+      currentCompiled = compileRoutes(currentRoutes, opts);
     },
     removeRoute(toolId: string) {
       const idx = currentRoutes.findIndex((r) => r.tool_id === toolId);
@@ -154,7 +159,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
   });
 
   // Admin API
-  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, config, configStore, startTime }));
+  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService }));
 
   // Gateway routes - catch all non-health requests
   // NOTE: must use app.all (not app.use) so req.path retains the full path

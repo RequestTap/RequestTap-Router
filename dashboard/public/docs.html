@@ -66,15 +66,29 @@
       display: none; position: absolute; right: 0; top: calc(100% + 8px);
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); width: 600px; z-index: 100;
-      box-shadow: 0 8px 24px rgba(0,0,0,.4); max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4); max-height: 80vh;
+      flex-direction: column;
     }
-    .settings-dropdown.open { display: block; }
+    .settings-dropdown.open { display: flex; }
     .settings-dropdown-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 20px; border-bottom: 1px solid var(--border);
-      font-size: 15px; font-weight: 600;
+      font-size: 15px; font-weight: 600; flex-shrink: 0;
     }
-    .settings-dropdown-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .settings-tabs {
+      display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      background: var(--bg); padding: 0 12px;
+    }
+    .settings-tab {
+      padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer; border: none; background: none; letter-spacing: 0.5px;
+      border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+    }
+    .settings-tab:hover { color: var(--text); }
+    .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .settings-tab-panel { display: none; }
+    .settings-tab-panel.active { display: flex; flex-direction: column; gap: 14px; }
+    .settings-dropdown-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
     .settings-section-label {
       font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase;
       letter-spacing: 1px; padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--border);
@@ -200,14 +214,14 @@
 <body>
 
 <nav>
-  <a href="/dashboard"><img src="/logo.png" alt="RequestTap" /></a>
+  <a href="/routes"><img src="/logo.png" alt="RequestTap" /></a>
   <span class="admin-label">ROUTER ADMIN</span>
   <span class="sep">/</span>
-  <a href="/dashboard">ROUTES</a>
+  <a href="/routes">ROUTES</a>
   <span class="sep">/</span>
-  <a href="/dashboard">REQUESTS</a>
+  <a href="/requests">REQUESTS</a>
   <span class="sep">/</span>
-  <a href="/dashboard">DEBUG</a>
+  <a href="/debug">DEBUG</a>
   <span class="sep">/</span>
   <a href="/docs" class="active">DOCS</a>
   <span class="spacer"></span>
@@ -224,46 +238,59 @@
       <div class="settings-dropdown-header">
         <span>SETTINGS</span>
       </div>
+      <div class="settings-tabs">
+        <button class="settings-tab active" onclick="switchSettingsTab('api')">API Provider</button>
+        <button class="settings-tab" onclick="switchSettingsTab('base')">Base L2</button>
+        <button class="settings-tab" onclick="switchSettingsTab('skale')">SKALE</button>
+      </div>
       <div class="settings-dropdown-body">
-        <div class="settings-section-label" style="border-top:none;padding-top:0">Existing API Provider</div>
-        <div class="field-group">
-          <label>API Key</label>
-          <input type="password" id="input-api-key" placeholder="sk-..." value="" />
+        <!-- API Provider -->
+        <div class="settings-tab-panel active" id="stab-api">
+          <div style="font-size:12px;color:var(--muted)">Connect your existing API provider to proxy requests through the gateway.</div>
+          <div class="field-group">
+            <label>API Key</label>
+            <input type="password" id="input-api-key" placeholder="sk-..." value="" />
+          </div>
         </div>
-        <div class="settings-section-label">Payment Settings</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">This is the wallet that pays for the BASE L2 fees and also receives the payments</div>
-        <div class="field-group">
-          <label>Wallet Address (Base L2)</label>
-          <input type="text" id="input-wallet-address" placeholder="0x..." />
+        <!-- Base L2 -->
+        <div class="settings-tab-panel" id="stab-base">
+          <div style="font-size:12px;color:var(--muted)">Configure the Base L2 wallet that receives x402 payments and pays network fees.</div>
+          <div class="field-group">
+            <label>Wallet Address</label>
+            <input type="text" id="input-wallet-address" placeholder="0x..." />
+          </div>
+          <div class="field-group">
+            <label>Network</label>
+            <select id="input-base-network">
+              <option value="base-sepolia">base-sepolia (Testnet)</option>
+              <option value="base">base (Mainnet)</option>
+            </select>
+          </div>
+          <button class="test-btn" onclick="testWallet()">Test Wallet Connection</button>
+          <div class="test-result" id="test-wallet-result"></div>
         </div>
-        <div class="field-group">
-          <label>Base Network</label>
-          <select id="input-base-network">
-            <option value="base-sepolia">base-sepolia (Testnet)</option>
-            <option value="base">base (Mainnet)</option>
-          </select>
+        <!-- SKALE -->
+        <div class="settings-tab-panel" id="stab-skale">
+          <div style="font-size:12px;color:var(--muted)">SKALE network settings for BITE threshold encryption (zero gas fees).</div>
+          <div class="field-group">
+            <label>SKALE Network</label>
+            <select id="input-skale-network">
+              <option value="calypso-testnet">Calypso Hub (Testnet)</option>
+              <option value="staging-v3">Chaos (Testnet)</option>
+              <option value="mainnet">mainnet</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>SKALE RPC URL</label>
+            <input type="text" id="input-skale-rpc" placeholder="https://..." />
+          </div>
+          <div class="field-group">
+            <label>BITE Contract Address</label>
+            <input type="text" id="input-skale-contract" placeholder="0x..." />
+          </div>
+          <button class="test-btn" onclick="testSkale()">Test SKALE Connection</button>
+          <div class="test-result" id="test-skale-result"></div>
         </div>
-        <button class="test-btn" onclick="testWallet()">Test Wallet Connection</button>
-        <div class="test-result" id="test-wallet-result"></div>
-        <div class="settings-section-label">SKALE Settings</div>
-        <div class="field-group">
-          <label>SKALE Network</label>
-          <select id="input-skale-network">
-            <option value="calypso-testnet">Calypso Hub (Testnet)</option>
-            <option value="staging-v3">Chaos (Testnet)</option>
-            <option value="mainnet">mainnet</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>SKALE RPC URL</label>
-          <input type="text" id="input-skale-rpc" placeholder="https://..." />
-        </div>
-        <div class="field-group">
-          <label>BITE Contract Address</label>
-          <input type="text" id="input-skale-contract" placeholder="0x..." />
-        </div>
-        <button class="test-btn" onclick="testSkale()">Test SKALE Connection</button>
-        <div class="test-result" id="test-skale-result"></div>
       </div>
     </div>
   </div>
@@ -333,7 +360,7 @@
   <div class="panel-right">
     <div class="docs-content">
       <h1>Technology Documentation</h1>
-      <div class="docs-subtitle">Protocols, platforms, and tools used by RequestTap Router</div>
+      <div class="docs-subtitle">Protocols, platforms, and tools used by RequestTap Router. Please refer to the project <a href="https://github.com/RequestTap/RequestTap-Router#readme" target="_blank" style="color:var(--accent)">README.md</a> for full detailed setup instructions.</div>
 
       <div class="doc-card">
         <h2>x402 Protocol <a href="https://www.x402.org/" target="_blank">x402.org</a></h2>
@@ -344,19 +371,7 @@
       <div class="doc-card">
         <h2>Base L2 (Coinbase) <a href="https://base.org/" target="_blank">base.org</a></h2>
         <div class="doc-desc">Ethereum L2 built by Coinbase for fast, low-cost transactions.</div>
-        <div class="doc-usage"><strong>How we use it:</strong> All x402 payment settlements happen on Base. Supports both Base Sepolia (testnet) and Base Mainnet for USDC transfers.</div>
-      </div>
-
-      <div class="doc-card">
-        <h2>Coinbase CDP SDK <a href="https://docs.cdp.coinbase.com/" target="_blank">docs.cdp.coinbase.com</a></h2>
-        <div class="doc-desc">Wallet infrastructure for creating and managing crypto wallets programmatically.</div>
-        <div class="doc-usage"><strong>How we use it:</strong> The Agent SDK uses CDP for wallet creation and management, enabling agents to hold USDC and make payments to API providers.</div>
-      </div>
-
-      <div class="doc-card">
-        <h2>USDC (Circle) <a href="https://www.circle.com/usdc" target="_blank">circle.com/usdc</a></h2>
-        <div class="doc-desc">Dollar-pegged stablecoin for predictable API pricing.</div>
-        <div class="doc-usage"><strong>How we use it:</strong> All API payments are denominated and settled in USDC on Base L2. Prices are set per-route in USDC (e.g., $0.01 per request).</div>
+        <div class="doc-usage"><strong>How we use it:</strong> All x402 payment settlements happen on Base. Supports both Base Testnet and Base Mainnet for USDC transfers.</div>
       </div>
 
       <div class="doc-card">
@@ -369,6 +384,18 @@
         <h2>BITE Protocol <a href="https://docs.skale.network/skale-chain/bite" target="_blank">docs.skale.network</a></h2>
         <div class="doc-desc">Blockchain Intents with Threshold Encryption on SKALE.</div>
         <div class="doc-usage"><strong>How we use it:</strong> Optional middleware that encrypts premium API responses using threshold encryption. Only authorized agents with valid payment can decrypt the content.</div>
+      </div>
+
+      <div class="doc-card">
+        <h2>Coinbase CDP SDK <a href="https://docs.cdp.coinbase.com/" target="_blank">docs.cdp.coinbase.com</a></h2>
+        <div class="doc-desc">Wallet infrastructure for creating and managing crypto wallets programmatically.</div>
+        <div class="doc-usage"><strong>How we use it:</strong> The Agent SDK uses CDP for wallet creation and management, enabling agents to hold USDC and make payments to API providers.</div>
+      </div>
+
+      <div class="doc-card">
+        <h2>USDC (Circle) <a href="https://www.circle.com/usdc" target="_blank">circle.com/usdc</a></h2>
+        <div class="doc-desc">Dollar-pegged stablecoin for predictable API pricing.</div>
+        <div class="doc-usage"><strong>How we use it:</strong> All API payments are denominated and settled in USDC on Base L2. Prices are set per-route in USDC (e.g., $0.01 per request).</div>
       </div>
 
       <div class="doc-card">
@@ -495,6 +522,12 @@ function updateNetworkLabels() {
 function toggleSettings() {
   document.getElementById('settings-dropdown').classList.toggle('open');
 }
+function switchSettingsTab(id) {
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.settings-tab[onclick*="'${id}'"]`).classList.add('active');
+  document.getElementById('stab-' + id).classList.add('active');
+}
 document.addEventListener('click', (e) => {
   if (!document.querySelector('.settings-wrapper').contains(e.target)) {
     document.getElementById('settings-dropdown').classList.remove('open');
@@ -508,7 +541,7 @@ async function testWallet() {
   if (!addr) { el.textContent = 'Enter a wallet address first'; el.style.color = 'var(--red)'; return; }
   if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) { el.textContent = 'Invalid address format'; el.style.color = 'var(--red)'; return; }
   const explorerBase = network === 'base' ? 'https://basescan.org' : 'https://sepolia.basescan.org';
-  el.innerHTML = `Valid address on ${network === 'base' ? 'Base Mainnet' : 'Base Sepolia'} &mdash; <a style="color:var(--accent)" href="${explorerBase}/address/${addr}" target="_blank">View on Explorer</a>`;
+  el.innerHTML = `Valid address on ${network === 'base' ? 'Base Mainnet' : 'Base Testnet'} &mdash; <a style="color:var(--accent)" href="${explorerBase}/address/${addr}" target="_blank">View on Explorer</a>`;
   el.style.color = 'var(--green)';
   localStorage.setItem('rt-base-connected', network);
   updateNetworkLabels();

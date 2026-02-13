@@ -9,7 +9,7 @@ import type { Server } from "http";
 
 export { loadConfig, type GatewayConfig } from "./config.js";
 export { createApp, type RouteManager } from "./server.js";
-export { type RouteRule, type ProviderConfig, type CompiledRule, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
+export { type RouteRule, type ProviderConfig, type CompiledRule, type CompileOptions, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
 export { createAdminRouter } from "./admin-routes.js";
 export { InMemoryReplayStore, checkReplay, type ReplayStore } from "./replay.js";
 export { SpendTracker, verifyMandate, mandateSigningPayload } from "./ap2.js";

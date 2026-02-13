@@ -18,6 +18,7 @@ export interface DashboardConfig {
   skaleBiteContract: string;
   globalPriceUsdc: string | null;
   apiKey: string;
+  apiBaseUrl: string;
   routeGroups: RouteGroup[];
   blacklist: string[];
 }
@@ -30,6 +31,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
   skaleBiteContract: "",
   globalPriceUsdc: null,
   apiKey: "",
+  apiBaseUrl: "",
   routeGroups: [],
   blacklist: [],
 };

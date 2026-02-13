@@ -2,13 +2,16 @@ import { Router } from "express";
 import { writeFileSync } from "fs";
 import { createAdminAuth } from "./middleware/admin-auth.js";
 import type { RouteManager } from "./server.js";
+import { SSRFError } from "./utils/ssrf.js";
 import type { ReceiptStore } from "./services/receipt-store.js";
 import type { SpendTracker } from "./ap2.js";
 import type { GatewayConfig } from "./config.js";
 import type { ConfigStore } from "./services/config-store.js";
+import type { BiteService } from "./bite.js";
 import { parseOpenApiToRoutes } from "./services/openapi-parser.js";
 import { generateAgentApiDocs } from "./services/docs-generator.js";
 import { assertNotX402Upstream, X402UpstreamError } from "./utils/x402-probe.js";
+import { keccak256, toHex } from "viem";
 
 export interface AdminRouterDeps {
   routeManager: RouteManager;
@@ -17,10 +20,11 @@ export interface AdminRouterDeps {
   config: GatewayConfig;
   configStore: ConfigStore;
   startTime: number;
+  biteService: BiteService | null;
 }
 
 export function createAdminRouter(deps: AdminRouterDeps): Router {
-  const { routeManager, receiptStore, spendTracker, config, configStore, startTime } = deps;
+  const { routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService } = deps;
   const router = Router();
 
   router.use(createAdminAuth());
@@ -102,7 +106,7 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
       return;
     }
 
-    const rule = {
+    const rule: any = {
       method: method.toUpperCase(),
       path,
       tool_id,
@@ -113,13 +117,21 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
         ...(provider.auth ? { auth: { header: provider.auth.header, value: provider.auth.value } } : {}),
       },
     };
+    if (req.body.description) rule.description = req.body.description;
+    if (req.body.group) rule.group = req.body.group;
+    if (req.body.restricted === true) rule.restricted = true;
 
+    const skipSsrf = req.body._skip_ssrf === true;
     try {
       await assertNotX402Upstream(rule.provider.backend_url, rule.path);
-      routeManager.addRoute(rule);
+      routeManager.addRoute(rule, skipSsrf ? { skipSsrf: true } : undefined);
     } catch (err: any) {
       if (err instanceof X402UpstreamError) {
         res.status(400).json({ error: err.message, reason: "X402_UPSTREAM_BLOCKED" });
+        return;
+      }
+      if (err instanceof SSRFError) {
+        res.status(400).json({ error: err.message, reason: "SSRF_BLOCKED" });
         return;
       }
       res.status(400).json({ error: err.message });
@@ -370,6 +382,22 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
       return;
     }
     res.json({ ok: true, blacklist: list });
+  });
+
+  // POST /admin/skale/test-anchor
+  router.post("/skale/test-anchor", async (_req, res) => {
+    if (!biteService) {
+      res.status(400).json({ error: "SKALE not configured" });
+      return;
+    }
+    try {
+      const intentId = keccak256(toHex("e2e-test-" + Date.now()));
+      const testPayload = new TextEncoder().encode(JSON.stringify({ test: true, ts: Date.now() }));
+      const txHash = await biteService.encryptIntent(intentId, testPayload);
+      res.json({ ok: true, txHash, intentId });
+    } catch (err: any) {
+      res.status(500).json({ error: `SKALE anchor failed: ${err.message}` });
+    }
   });
 
   // DELETE /admin/blacklist/:address
