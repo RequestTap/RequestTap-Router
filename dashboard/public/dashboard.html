@@ -2122,35 +2122,53 @@ function updateToggleAllLabel() {
   btn.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
 }
 
-// Section registry: key → function that returns array of test runners
+// Section registry: key → function that returns array of test steps.
+// Each step is either a function (run alone) or an array of functions (run in parallel).
 const debugSections = {
-  core:       (r, c) => [testHealthCheck, () => testRouteMatch(r,c), () => testRouteNotFound(c), () => testRestrictedRoute(r,c), () => testAuth401(r,c), () => testAuthValid(r,c)],
-  e2e:        (r, c) => [() => testE2ePipeline(c), testE2eReceipt, testE2eHash, () => testE2e402(c), testE2eSkale],
+  core:       (r, c) => [[testHealthCheck, () => testRouteMatch(r,c), () => testRouteNotFound(c), () => testRestrictedRoute(r,c), () => testAuth401(r,c), () => testAuthValid(r,c)]],
+  e2e:        (r, c) => [() => testE2ePipeline(c), [testE2eReceipt, testE2eHash], [() => testE2e402(c), testE2eSkale]],
   idempotency:(r, c) => [() => testIdempotency(r,c)],
   payment:    (r, c) => [() => testPaymentRequired(r,c)],
   x402:       ()     => [testX402Probe, testX402Skip],
-  mandate:    (r, c) => [() => testMandateSkipped(r,c), () => testMandateRejected(r,c)],
-  blacklist:  (r, c) => [testBlacklistApi, () => testAgentAllowed(r,c), () => testAgentBlocked(r,c)],
-  receipts:   ()     => [testReceiptsStats, testReceiptsList, testReceiptsFilter],
-  admin:      ()     => [testAdminConfig, testDashboardConfigTest, testAdminRoutes],
+  mandate:    (r, c) => [[() => testMandateSkipped(r,c), () => testMandateRejected(r,c)]],
+  blacklist:  (r, c) => [testBlacklistApi, [() => testAgentAllowed(r,c), () => testAgentBlocked(r,c)]],
+  receipts:   ()     => [[testReceiptsStats, testReceiptsList, testReceiptsFilter]],
+  admin:      ()     => [[testAdminConfig, testDashboardConfigTest, testAdminRoutes]],
   docs:       ()     => [testOpenApiSpec],
-  skale:      (r, c) => [() => testSkaleRpc(c), () => testSkaleBlock(c)],
-  cdp:        ()     => [testCdpEnv, testCdpApi],
+  skale:      (r, c) => [[() => testSkaleRpc(c), () => testSkaleBlock(c)]],
+  cdp:        ()     => [[testCdpEnv, testCdpApi]],
 };
+
+// Run a step: if it's an array, run all in parallel; if a function, run it alone.
+async function runStep(step) {
+  if (Array.isArray(step)) await Promise.allSettled(step.map(fn => fn()));
+  else await step();
+}
 
 async function runSection(key) {
   const { routes, cfg } = await debugLoadContext();
-  const fns = debugSections[key](routes, cfg);
-  for (const fn of fns) await fn();
+  const steps = debugSections[key](routes, cfg);
+  for (const step of steps) await runStep(step);
 }
+
+// Batch plan for runAllTests: groups of sections that can run in parallel.
+// Batch 1: independent read-only sections
+// Batch 2: sections that create/delete temp routes (e2e, x402, blacklist)
+// Batch 3: remaining write-then-read sections
+const sectionBatches = [
+  ['core', 'admin', 'receipts', 'docs', 'skale', 'cdp'],
+  ['e2e', 'idempotency', 'payment', 'mandate'],
+  ['x402', 'blacklist'],
+];
 
 async function runAllTests() {
   clearAllTests();
   const { routes, cfg } = await debugLoadContext();
-  const sectionOrder = ['core','e2e','idempotency','payment','x402','mandate','blacklist','receipts','admin','docs','skale','cdp'];
-  for (const key of sectionOrder) {
-    const fns = debugSections[key](routes, cfg);
-    for (const fn of fns) await fn();
+  for (const batch of sectionBatches) {
+    await Promise.allSettled(batch.map(async key => {
+      const steps = debugSections[key](routes, cfg);
+      for (const step of steps) await runStep(step);
+    }));
   }
 }
 
