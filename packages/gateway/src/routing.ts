@@ -23,6 +23,8 @@ export interface RouteRule {
   group?: string;
   description?: string;
   restricted?: boolean;
+  /** Internal: route was added with SSRF bypass (admin debug). Not persisted. */
+  _skipSsrf?: boolean;
 }
 
 export interface CompiledRule {
@@ -63,7 +65,7 @@ function pathToRegex(path: string): { regex: RegExp; paramNames: string[] } {
 
 export function compileRoutes(rules: RouteRule[], opts?: CompileOptions): CompiledRule[] {
   return rules.map((rule, i) => {
-    if (!opts?.skipSsrf) assertNotSSRF(rule.provider.backend_url);
+    if (!opts?.skipSsrf && !rule._skipSsrf) assertNotSSRF(rule.provider.backend_url);
 
     const segments = rule.path.split("/").filter(Boolean);
     const literalCount = segments.filter((s) => !s.startsWith(":")).length;

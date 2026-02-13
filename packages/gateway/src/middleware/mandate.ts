@@ -1,10 +1,21 @@
 import type { Request, Response, NextFunction } from "express";
 import { HEADERS, Outcome, ReasonCode } from "@requesttap/shared";
-import type { Mandate, Receipt } from "@requesttap/shared";
-import { verifyMandate, type SpendTracker } from "../ap2.js";
+import type { Mandate, IntentMandate, Receipt } from "@requesttap/shared";
+import { verifyMandate, verifyIntentMandate, intentMandateId, type SpendTracker, type LifetimeSpendTracker } from "../ap2.js";
 import type { GatewayConfig } from "../config.js";
 
-export function createMandateMiddleware(spendTracker: SpendTracker, config: GatewayConfig) {
+function isIntentMandate(obj: any): obj is IntentMandate {
+  return obj.type === "IntentMandate" && obj.contents != null;
+}
+
+function resolveGatewayDomain(req: Request, config: GatewayConfig): string {
+  if (config.gatewayDomain) return config.gatewayDomain;
+  const host = req.headers.host || "localhost";
+  // Strip port if present
+  return host.replace(/:\d+$/, "");
+}
+
+export function createMandateMiddleware(spendTracker: SpendTracker, lifetimeTracker: LifetimeSpendTracker, config: GatewayConfig) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const mandateHeader = req.headers[HEADERS.MANDATE] as string | undefined;
     if (!mandateHeader) {
@@ -13,21 +24,36 @@ export function createMandateMiddleware(spendTracker: SpendTracker, config: Gate
       return;
     }
 
-    let mandate: Mandate;
+    let parsed: any;
     try {
-      mandate = JSON.parse(Buffer.from(mandateHeader, "base64").toString("utf-8"));
+      parsed = JSON.parse(Buffer.from(mandateHeader, "base64").toString("utf-8"));
     } catch {
       res.status(400).json({ error: "Invalid X-Mandate header (malformed base64/JSON)" });
       return;
     }
 
-    const verdict = await verifyMandate(mandate, {
-      tool_id: (req as any).toolId || "unknown",
-      price_usdc: (req as any).routePrice || "0",
-      timestamp: new Date().toISOString(),
-    }, spendTracker);
+    let verdict;
+    let mandateId: string;
 
-    (req as any).mandate = mandate;
+    if (isIntentMandate(parsed)) {
+      const intentMandate = parsed as IntentMandate;
+      verdict = await verifyIntentMandate(intentMandate, {
+        price_usdc: (req as any).routePrice || "0",
+        timestamp: new Date().toISOString(),
+        gateway_domain: resolveGatewayDomain(req, config),
+      }, lifetimeTracker);
+      mandateId = intentMandateId(intentMandate.contents);
+    } else {
+      const mandate = parsed as Mandate;
+      verdict = await verifyMandate(mandate, {
+        tool_id: (req as any).toolId || "unknown",
+        price_usdc: (req as any).routePrice || "0",
+        timestamp: new Date().toISOString(),
+      }, spendTracker);
+      mandateId = mandate.mandate_id;
+    }
+
+    (req as any).mandate = parsed;
     (req as any).mandateVerdict = verdict.approved ? "APPROVED" : "DENIED";
 
     if (!verdict.approved) {
@@ -41,7 +67,7 @@ export function createMandateMiddleware(spendTracker: SpendTracker, config: Gate
         price_usdc: (req as any).routePrice || "0",
         currency: "USDC",
         chain: config.baseNetwork,
-        mandate_id: mandate.mandate_id,
+        mandate_id: mandateId,
         mandate_hash: null,
         mandate_verdict: "DENIED",
         reason_code: verdict.reason_code as ReasonCode,

@@ -10,6 +10,11 @@ export {
   type Mandate,
   type MandateRequestContext,
   type MandateVerdict,
+  type IntentMandate,
+  type IntentMandateContents,
+  type IntentMandateBudget,
+  type IntentMandateRequestContext,
+  type AnyMandate,
 } from "./mandate.js";
 
 export { HEADERS, DEFAULTS } from "./constants.js";

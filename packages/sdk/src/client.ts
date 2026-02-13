@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
-import { HEADERS, type Mandate, type Receipt, Outcome } from "@requesttap/shared";
+import { HEADERS, type AnyMandate, type Receipt, Outcome } from "@requesttap/shared";
 
 export interface RequestTapClientOptions {
   gatewayBaseUrl: string;
-  mandate?: Mandate;
+  mandate?: AnyMandate;
 }
 
 export interface RequestOptions {
@@ -21,7 +21,7 @@ export interface CdpWalletConfig {
 
 export class RequestTapClient {
   private baseUrl: string;
-  private mandate?: Mandate;
+  private mandate?: AnyMandate;
   private receipts: Receipt[] = [];
   private paymentFetch: typeof fetch = fetch;
   private walletAddress: string | null = null;

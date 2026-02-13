@@ -35,7 +35,7 @@ Open Source x402 API Router. Instantly turn any API into a USDC pay-per-request 
 ## Key Features
 
 - **x402 Payments** - Native HTTP 402 payment flow on Base (USDC)
-- **AP2 Mandates** - Spend caps, tool allowlists, expiry, signature verification
+- **AP2 Mandates** - Spend caps, tool allowlists, expiry, signature verification (Mandate + IntentMandate)
 - **Replay Protection** - Idempotency key + request hash deduplication
 - **SSRF Protection** - Blocks private/reserved IP ranges at route compile time
 - **x402 Upstream Detection** - Rejects routes that already speak x402 to prevent markup/middleman abuse
@@ -157,6 +157,7 @@ Set environment variables or create a `.env` file (see `.env.example`):
 | `RT_FACILITATOR_URL` | no | Coinbase facilitator | x402 facilitator URL |
 | `RT_BASE_NETWORK` | no | `base-sepolia` | Base network name |
 | `RT_ROUTES_FILE` | no | — | Path to routes JSON file |
+| `RT_GATEWAY_DOMAIN` | no | — | Gateway domain for IntentMandate merchant matching (falls back to Host header) |
 | `RT_REPLAY_TTL_MS` | no | `300000` | Replay protection window in milliseconds (5 min) |
 | `RT_SKIP_X402_PROBE` | no | `false` | Skip x402 upstream detection on route registration |
 | `ERC8004_RPC_URL` | no | — | RPC URL for ERC-8004 reputation registry |
@@ -215,6 +216,7 @@ SKALE_PRIVATE_KEY=<private key with sFUEL for gas>
 | `GET` | `/admin/receipts` | Query receipts with filtering & pagination |
 | `GET` | `/admin/receipts/stats` | Aggregate stats (total, success rate, USDC, latency) |
 | `GET` | `/admin/spend/:mandateId` | Check daily spend for a mandate |
+| `GET` | `/admin/intent-spend/:mandateKey` | Check lifetime spend for an IntentMandate |
 | `GET` | `/admin/dashboard-config` | Get dashboard configuration |
 | `PUT` | `/admin/dashboard-config` | Update dashboard configuration |
 | `GET` | `/admin/docs/openapi` | Generate OpenAPI spec |

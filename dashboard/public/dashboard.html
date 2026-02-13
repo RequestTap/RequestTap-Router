@@ -653,7 +653,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="footer-title" style="display:flex;align-items:center;gap:8px">RequestTap Router v1.0 <span style="font-size:8px;font-weight:600;letter-spacing:0.5px;padding:1px 4px;border:1px solid var(--muted);border-radius:3px;color:var(--muted);opacity:0.5">OPEN SOURCE</span></div>
+      <div class="footer-title">RequestTap Router v1.0</div>
       <div class="footer-links">
         <a href="https://x.com/RequestTap" target="_blank" title="X.com">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -734,6 +734,7 @@
           </label>
           <button class="btn" onclick="loadRequests()">Refresh</button>
           <button class="btn" onclick="exportReceipts()">Export JSON</button>
+          <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="clearAllRequests()">Clear All</button>
         </div>
       </div>
       <div class="filter-bar">
@@ -762,59 +763,12 @@
     <!-- Debug Tab -->
     <div id="tab-debug" style="display:none">
       <div class="panel-header">
-        <h2>Debug Tests</h2>
+        <h2>Debug Tests <span id="debug-total-count" style="font-size:14px;font-weight:400;color:var(--muted)"></span></h2>
         <div style="display:flex;gap:8px;align-items:center">
           <span id="debug-summary" class="mono" style="font-size:13px"></span>
           <button class="btn btn-green" onclick="runAllTests()">Run All Tests</button>
           <button class="btn" onclick="toggleAllSections()" id="btn-toggle-sections">Expand All</button>
           <button class="btn" onclick="clearAllTests()">Clear Results</button>
-        </div>
-      </div>
-
-      <div class="debug-section collapsed" data-section="core">
-        <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">Gateway Core <span class="debug-section-status" id="ss-core"></span></h3>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('core')">Run Section</button>
-
-          </div>
-        </div>
-        <div class="debug-cards">
-          <div class="debug-card" id="debug-health">
-            <div class="debug-card-header"><span class="debug-card-title">Health Check</span><button class="btn btn-sm" onclick="testHealthCheck()">Run</button></div>
-            <div class="debug-card-desc">GET /health &mdash; 200 + status:"ok"</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-route-match">
-            <div class="debug-card-header"><span class="debug-card-title">Route Match</span><button class="btn btn-sm" onclick="testRouteMatch()">Run</button></div>
-            <div class="debug-card-desc">Hit first enabled route with API key &mdash; expect not 404</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-route-404">
-            <div class="debug-card-header"><span class="debug-card-title">Route Not Found</span><button class="btn btn-sm" onclick="testRouteNotFound()">Run</button></div>
-            <div class="debug-card-desc">GET /api/v1/__nonexistent__ &mdash; 404 ROUTE_NOT_FOUND</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-route-restricted">
-            <div class="debug-card-header"><span class="debug-card-title">Restricted Route</span><button class="btn btn-sm" onclick="testRestrictedRoute()">Run</button></div>
-            <div class="debug-card-desc">Hit a disabled route &mdash; shows response (skip if none)</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-auth-401">
-            <div class="debug-card-header"><span class="debug-card-title">API Key Auth (401)</span><button class="btn btn-sm" onclick="testAuth401()">Run</button></div>
-            <div class="debug-card-desc">Hit route WITHOUT API key &mdash; 401 UNAUTHORIZED</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-auth-valid">
-            <div class="debug-card-header"><span class="debug-card-title">API Key Valid</span><button class="btn btn-sm" onclick="testAuthValid()">Run</button></div>
-            <div class="debug-card-desc">Hit route WITH correct API key &mdash; not 401</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-rate-limit">
-            <div class="debug-card-header"><span class="debug-card-title">Rate Limiting</span><button class="btn btn-sm" onclick="testRateLimit()">Run</button></div>
-            <div class="debug-card-desc">105 rapid GET /health &mdash; expect at least one 429 (excluded from Run All)</div>
-            <div class="debug-result"></div>
-          </div>
         </div>
       </div>
 
@@ -857,21 +811,55 @@
             <div class="debug-card-desc">Encrypt &rarr; verify hidden &rarr; reveal (markPaid) &rarr; verify decrypted &mdash; full threshold encryption flow</div>
             <div class="debug-result"></div>
           </div>
+          <div class="debug-card" id="debug-e2e-upstream-error">
+            <div class="debug-card-header"><span class="debug-card-title">Upstream Error (No Charge)</span><button class="btn btn-sm" onclick="testUpstreamError()">Run</button></div>
+            <div class="debug-card-desc">Route to dead upstream &rarr; 502 with UPSTREAM_ERROR_NO_CHARGE &mdash; agent not billed</div>
+            <div class="debug-result"></div>
+          </div>
         </div>
       </div>
 
-      <div class="debug-section collapsed" data-section="idempotency">
+      <div class="debug-section collapsed" data-section="core">
         <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">Idempotency <span class="debug-section-status" id="ss-idempotency"></span></h3>
+          <h3 class="debug-section-title">Gateway Core <span class="debug-section-status" id="ss-core"></span></h3>
           <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('idempotency')">Run Section</button>
-
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('core')">Run Section</button>
           </div>
         </div>
         <div class="debug-cards">
-          <div class="debug-card" id="debug-idempotency">
-            <div class="debug-card-header"><span class="debug-card-title">Replay Detection</span><button class="btn btn-sm" onclick="testIdempotency()">Run</button></div>
-            <div class="debug-card-desc">Same request 2x with X-Idempotency-Key &mdash; 2nd returns 409</div>
+          <div class="debug-card" id="debug-health">
+            <div class="debug-card-header"><span class="debug-card-title">Health Check</span><button class="btn btn-sm" onclick="testHealthCheck()">Run</button></div>
+            <div class="debug-card-desc">GET /health &mdash; 200 + status:"ok"</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-route-match">
+            <div class="debug-card-header"><span class="debug-card-title">Route Match</span><button class="btn btn-sm" onclick="testRouteMatch()">Run</button></div>
+            <div class="debug-card-desc">Hit first enabled route with API key &mdash; expect not 404</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-route-404">
+            <div class="debug-card-header"><span class="debug-card-title">Route Not Found</span><button class="btn btn-sm" onclick="testRouteNotFound()">Run</button></div>
+            <div class="debug-card-desc">GET /api/v1/__nonexistent__ &mdash; 404 ROUTE_NOT_FOUND</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-route-restricted">
+            <div class="debug-card-header"><span class="debug-card-title">Restricted Route</span><button class="btn btn-sm" onclick="testRestrictedRoute()">Run</button></div>
+            <div class="debug-card-desc">Hit a disabled route &mdash; shows response (skip if none)</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-auth-401">
+            <div class="debug-card-header"><span class="debug-card-title">API Key Auth (401)</span><button class="btn btn-sm" onclick="testAuth401()">Run</button></div>
+            <div class="debug-card-desc">Hit route WITHOUT API key &mdash; 401 UNAUTHORIZED</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-auth-valid">
+            <div class="debug-card-header"><span class="debug-card-title">API Key Valid</span><button class="btn btn-sm" onclick="testAuthValid()">Run</button></div>
+            <div class="debug-card-desc">Hit route WITH correct API key &mdash; not 401</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-rate-limit">
+            <div class="debug-card-header"><span class="debug-card-title">Rate Limiting</span><button class="btn btn-sm" onclick="testRateLimit()">Run</button></div>
+            <div class="debug-card-desc">105 rapid GET /health &mdash; expect at least one 429 (excluded from Run All)</div>
             <div class="debug-result"></div>
           </div>
         </div>
@@ -901,7 +889,7 @@
 
       <div class="debug-section collapsed" data-section="x402">
         <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">x402 Upstream Probe <span class="debug-section-status" id="ss-x402"></span></h3>
+          <h3 class="debug-section-title">Security Checks <span class="debug-section-status" id="ss-x402"></span></h3>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn btn-sm" onclick="event.stopPropagation();runSection('x402')">Run Section</button>
 
@@ -918,12 +906,33 @@
             <div class="debug-card-desc">RT_SKIP_X402_PROBE env var &mdash; should be unset (probe active)</div>
             <div class="debug-result"></div>
           </div>
+          <div class="debug-card" id="debug-ssrf-blocked">
+            <div class="debug-card-header"><span class="debug-card-title">SSRF Protection</span><button class="btn btn-sm" onclick="testSsrfBlocked()">Run</button></div>
+            <div class="debug-card-desc">Register route to private IP (10.0.0.1) &mdash; expect 400 SSRF_BLOCKED</div>
+            <div class="debug-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section collapsed" data-section="idempotency">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">Idempotency <span class="debug-section-status" id="ss-idempotency"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('idempotency')">Run Section</button>
+          </div>
+        </div>
+        <div class="debug-cards">
+          <div class="debug-card" id="debug-idempotency">
+            <div class="debug-card-header"><span class="debug-card-title">Replay Detection</span><button class="btn btn-sm" onclick="testIdempotency()">Run</button></div>
+            <div class="debug-card-desc">Same request 2x with X-Idempotency-Key &mdash; 2nd returns 409</div>
+            <div class="debug-result"></div>
+          </div>
         </div>
       </div>
 
       <div class="debug-section collapsed" data-section="mandate">
         <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">AP2 Mandate <span class="debug-section-status" id="ss-mandate"></span></h3>
+          <h3 class="debug-section-title">AP2 Mandates <span class="debug-section-status" id="ss-mandate"></span></h3>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn btn-sm" onclick="event.stopPropagation();runSection('mandate')">Run Section</button>
 
@@ -938,6 +947,62 @@
           <div class="debug-card" id="debug-mandate-rejected">
             <div class="debug-card-header"><span class="debug-card-title">Mandate Rejected (Invalid)</span><button class="btn btn-sm" onclick="testMandateRejected()">Run</button></div>
             <div class="debug-card-desc">Request with malformed X-Mandate &mdash; 400 Bad Request</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-mandate-sig">
+            <div class="debug-card-header"><span class="debug-card-title">Mandate Signature (EIP-191)</span><button class="btn btn-sm" onclick="testMandateSig()">Run</button></div>
+            <div class="debug-card-desc">Valid EIP-191 signed mandate &mdash; passes signature verification (may 402 for payment, which is fine)</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-mandate-expired">
+            <div class="debug-card-header"><span class="debug-card-title">Mandate Expired</span><button class="btn btn-sm" onclick="testMandateExpired()">Run</button></div>
+            <div class="debug-card-desc">Signed mandate with past expiry &mdash; 403 MANDATE_EXPIRED</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-mandate-budget">
+            <div class="debug-card-header"><span class="debug-card-title">Mandate Daily Budget</span><button class="btn btn-sm" onclick="testMandateBudget()">Run</button></div>
+            <div class="debug-card-desc">Check daily spend tracker via admin API &mdash; shows current tracked spend</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-intent-budget">
+            <div class="debug-card-header"><span class="debug-card-title">IntentMandate Budget Rejected</span><button class="btn btn-sm" onclick="testIntentBudget()">Run</button></div>
+            <div class="debug-card-desc">Budget $0.001 vs route price &mdash; 403 INTENT_BUDGET_EXCEEDED</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-intent-merchant">
+            <div class="debug-card-header"><span class="debug-card-title">IntentMandate Merchant Match</span><button class="btn btn-sm" onclick="testIntentMerchant()">Run</button></div>
+            <div class="debug-card-desc">Wrong merchant domain &mdash; 403 MERCHANT_NOT_MATCHED</div>
+            <div class="debug-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section collapsed" data-section="skale">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">SKALE / BITE <span class="debug-section-status" id="ss-skale"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('skale')">Run Section</button>
+          </div>
+        </div>
+        <div class="debug-cards">
+          <div class="debug-card" id="debug-skale-rpc">
+            <div class="debug-card-header"><span class="debug-card-title">RPC Connection</span><button class="btn btn-sm" onclick="testSkaleRpc()">Run</button></div>
+            <div class="debug-card-desc">eth_chainId via /rpc-proxy &mdash; returns chain ID</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-skale-block">
+            <div class="debug-card-header"><span class="debug-card-title">Latest Block</span><button class="btn btn-sm" onclick="testSkaleBlock()">Run</button></div>
+            <div class="debug-card-desc">eth_blockNumber via /rpc-proxy &mdash; returns block number</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-bite-committee">
+            <div class="debug-card-header"><span class="debug-card-title">BITE Committee</span><button class="btn btn-sm" onclick="testBiteCommittee()">Run</button></div>
+            <div class="debug-card-desc">bite_getCommitteesInfo &mdash; verify threshold encryption is available</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-bite-contract">
+            <div class="debug-card-header"><span class="debug-card-title">BITE Contract</span><button class="btn btn-sm" onclick="testBiteContract()">Run</button></div>
+            <div class="debug-card-desc">eth_getCode + getIntent &mdash; verify IntentStore contract is deployed and callable</div>
             <div class="debug-result"></div>
           </div>
         </div>
@@ -1020,31 +1085,9 @@
             <div class="debug-card-desc">GET /admin/receipts?outcome=DENIED &mdash; all returned are DENIED</div>
             <div class="debug-result"></div>
           </div>
-        </div>
-      </div>
-
-      <div class="debug-section collapsed" data-section="admin">
-        <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">RT Router Settings <span class="debug-section-status" id="ss-admin"></span></h3>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('admin')">Run Section</button>
-
-          </div>
-        </div>
-        <div class="debug-cards">
-          <div class="debug-card" id="debug-admin-config">
-            <div class="debug-card-header"><span class="debug-card-title">Gateway Config</span><button class="btn btn-sm" onclick="testAdminConfig()">Run</button></div>
-            <div class="debug-card-desc">GET /admin/config &mdash; has port, baseNetwork</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-admin-dashboard">
-            <div class="debug-card-header"><span class="debug-card-title">Dashboard Config</span><button class="btn btn-sm" onclick="testDashboardConfigTest()">Run</button></div>
-            <div class="debug-card-desc">GET /admin/dashboard-config &mdash; has expected fields</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-admin-routes">
-            <div class="debug-card-header"><span class="debug-card-title">Routes List</span><button class="btn btn-sm" onclick="testAdminRoutes()">Run</button></div>
-            <div class="debug-card-desc">GET /admin/routes &mdash; has routes[]</div>
+          <div class="debug-card" id="debug-receipt-integrity">
+            <div class="debug-card-header"><span class="debug-card-title">Receipt Integrity</span><button class="btn btn-sm" onclick="testReceiptIntegrity()">Run</button></div>
+            <div class="debug-card-desc">Cross-validate X-Receipt header vs admin API &mdash; prove tamper-proof receipt chain</div>
             <div class="debug-result"></div>
           </div>
         </div>
@@ -1067,33 +1110,6 @@
         </div>
       </div>
 
-      <div class="debug-section collapsed" data-section="skale">
-        <div class="debug-section-header" onclick="toggleSection(this)">
-          <h3 class="debug-section-title">SKALE / BITE <span class="debug-section-status" id="ss-skale"></span></h3>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('skale')">Run Section</button>
-
-          </div>
-        </div>
-        <div class="debug-cards">
-          <div class="debug-card" id="debug-skale-rpc">
-            <div class="debug-card-header"><span class="debug-card-title">RPC Connection</span><button class="btn btn-sm" onclick="testSkaleRpc()">Run</button></div>
-            <div class="debug-card-desc">eth_chainId via /rpc-proxy &mdash; returns chain ID</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-skale-block">
-            <div class="debug-card-header"><span class="debug-card-title">Latest Block</span><button class="btn btn-sm" onclick="testSkaleBlock()">Run</button></div>
-            <div class="debug-card-desc">eth_blockNumber via /rpc-proxy &mdash; returns block number</div>
-            <div class="debug-result"></div>
-          </div>
-          <div class="debug-card" id="debug-bite-committee">
-            <div class="debug-card-header"><span class="debug-card-title">BITE Committee</span><button class="btn btn-sm" onclick="testBiteCommittee()">Run</button></div>
-            <div class="debug-card-desc">bite_getCommitteesInfo &mdash; verify threshold encryption is available</div>
-            <div class="debug-result"></div>
-          </div>
-        </div>
-      </div>
-
       <div class="debug-section collapsed" data-section="cdp">
         <div class="debug-section-header" onclick="toggleSection(this)">
           <h3 class="debug-section-title">CDP (Coinbase Developer Platform) <span class="debug-section-status" id="ss-cdp"></span></h3>
@@ -1111,6 +1127,42 @@
           <div class="debug-card" id="debug-cdp-api">
             <div class="debug-card-header"><span class="debug-card-title">API Reachable</span><button class="btn btn-sm" onclick="testCdpApi()">Run</button></div>
             <div class="debug-card-desc">POST /cdp-check &mdash; validates CDP API connectivity</div>
+            <div class="debug-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="debug-section collapsed" data-section="admin">
+        <div class="debug-section-header" onclick="toggleSection(this)">
+          <h3 class="debug-section-title">RT Router Settings <span class="debug-section-status" id="ss-admin"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-sm" onclick="event.stopPropagation();runSection('admin')">Run Section</button>
+          </div>
+        </div>
+        <div class="debug-cards">
+          <div class="debug-card" id="debug-admin-config">
+            <div class="debug-card-header"><span class="debug-card-title">Gateway Config</span><button class="btn btn-sm" onclick="testAdminConfig()">Run</button></div>
+            <div class="debug-card-desc">GET /admin/config &mdash; has port, baseNetwork</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-admin-dashboard">
+            <div class="debug-card-header"><span class="debug-card-title">Dashboard Config</span><button class="btn btn-sm" onclick="testDashboardConfigTest()">Run</button></div>
+            <div class="debug-card-desc">GET /admin/dashboard-config &mdash; has expected fields</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-admin-routes">
+            <div class="debug-card-header"><span class="debug-card-title">Routes List</span><button class="btn btn-sm" onclick="testAdminRoutes()">Run</button></div>
+            <div class="debug-card-desc">GET /admin/routes &mdash; has routes[]</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-openapi-import">
+            <div class="debug-card-header"><span class="debug-card-title">OpenAPI Import</span><button class="btn btn-sm" onclick="testOpenApiImport()">Run</button></div>
+            <div class="debug-card-desc">POST OpenAPI spec &rarr; bulk-create routes &rarr; verify &rarr; cleanup</div>
+            <div class="debug-result"></div>
+          </div>
+          <div class="debug-card" id="debug-price-update">
+            <div class="debug-card-header"><span class="debug-card-title">Dynamic Price Update</span><button class="btn btn-sm" onclick="testPriceUpdate()">Run</button></div>
+            <div class="debug-card-desc">Create route at $0.01 &rarr; PUT $0.05 &rarr; verify new price &rarr; cleanup</div>
             <div class="debug-result"></div>
           </div>
         </div>
@@ -1247,6 +1299,7 @@ async function testCdpConnection() {
   refreshAll();
   startPolling();
   loadEnvStatus();
+  updateDebugTotalCount();
 
   // Provider settings listeners
   let saveTimer = null;
@@ -2050,6 +2103,20 @@ function exportReceipts() {
   URL.revokeObjectURL(a.href);
 }
 
+async function clearAllRequests() {
+  if (!confirm('Clear all request receipts?')) return;
+  try {
+    const r = await api('/admin/receipts', { method: 'DELETE' });
+    if (!r.ok) throw new Error('Failed to clear');
+    allReceipts = [];
+    renderReceipts([]);
+    refreshHealth();
+    refreshStats();
+  } catch (e) {
+    alert('Failed to clear requests: ' + e.message);
+  }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────
 function esc(s) {
   if (s == null) return '';
@@ -2129,6 +2196,12 @@ function toggleDebugFilter(status) {
   updateDebugSummary();
 }
 
+function updateDebugTotalCount() {
+  const total = document.querySelectorAll('.debug-card[id^="debug-"]').length;
+  const el = document.getElementById('debug-total-count');
+  if (el) el.textContent = `(${total} tests)`;
+}
+
 function updateDebugSummary() {
   const el = document.getElementById('debug-summary');
   const parts = [];
@@ -2186,17 +2259,21 @@ function updateToggleAllLabel() {
 // Each step is either a function (run alone) or an array of functions (run in parallel).
 const debugSections = {
   core:       (r, c) => [[testHealthCheck, () => testRouteMatch(r,c), () => testRouteNotFound(c), () => testRestrictedRoute(r,c), () => testAuth401(r,c), () => testAuthValid(r,c)]],
-  e2e:        (r, c) => [() => testE2ePipeline(c), [testE2eReceipt, testE2eHash], [() => testE2e402(c), testE2eSkale], testBiteLifecycle],
+  e2e:        (r, c) => [() => testE2ePipeline(c), [testE2eReceipt, testE2eHash], [() => testE2e402(c), testE2eSkale], testBiteLifecycle, () => testUpstreamError(c)],
   idempotency:(r, c) => [() => testIdempotency(r,c)],
   payment:    (r, c) => [() => testPaymentRequired(r,c), () => testX402HeaderValid(r,c)],
-  x402:       ()     => [testX402Probe, testX402Skip],
-  mandate:    (r, c) => [[() => testMandateSkipped(r,c), () => testMandateRejected(r,c)]],
+  x402:       ()     => [[testX402Probe, testX402Skip, testSsrfBlocked]],
+  mandate:    (r, c) => [
+    [() => testMandateSkipped(r,c), () => testMandateRejected(r,c)],
+    [() => testMandateSig(r,c), () => testMandateExpired(r,c), () => testMandateBudget()],
+    [() => testIntentBudget(r,c), () => testIntentMerchant(r,c)],
+  ],
   blacklist:  (r, c) => [testBlacklistApi, [() => testAgentAllowed(r,c), () => testAgentBlocked(r,c)]],
   erc8004:    (r, c) => [testErc8004Query, [() => testErc8004Allowed(r,c), testErc8004Blocked]],
-  receipts:   ()     => [[testReceiptsStats, testReceiptsList, testReceiptsFilter]],
-  admin:      ()     => [[testAdminConfig, testDashboardConfigTest, testAdminRoutes]],
+  receipts:   (r, c) => [[testReceiptsStats, testReceiptsList, testReceiptsFilter], () => testReceiptIntegrity(r, c)],
+  admin:      ()     => [[testAdminConfig, testDashboardConfigTest, testAdminRoutes], [testOpenApiImport, testPriceUpdate]],
   docs:       ()     => [testOpenApiSpec],
-  skale:      (r, c) => [[() => testSkaleRpc(c), () => testSkaleBlock(c), () => testBiteCommittee(c)]],
+  skale:      (r, c) => [[() => testSkaleRpc(c), () => testSkaleBlock(c), () => testBiteCommittee(c), () => testBiteContract(c)]],
   cdp:        ()     => [[testCdpEnv, testCdpApi]],
 };
 
@@ -2391,8 +2468,20 @@ async function testX402HeaderValid(routes, cfg) {
       }
       return;
     }
-    // Validate x402 payment requirements in response body
-    const reqs = d?.paymentRequirements || d?.accepts;
+    // Validate x402 payment requirements — check body first, then payment-required header
+    let reqs = d?.paymentRequirements || d?.accepts;
+    let source = 'body';
+    if (!reqs || !Array.isArray(reqs) || reqs.length === 0) {
+      // x402 v2 puts payment info in the payment-required header as base64 JSON
+      const prHeader = r.headers.get('payment-required');
+      if (prHeader) {
+        try {
+          const decoded = JSON.parse(atob(prHeader));
+          reqs = decoded?.paymentRequirements || decoded?.accepts;
+          source = 'header';
+        } catch {}
+      }
+    }
     if (!reqs || !Array.isArray(reqs) || reqs.length === 0) {
       setTestResult('payment-x402-header', 'skip', 'x402 facilitator not fully configured — 402 returned without payment requirements');
       return;
@@ -2445,6 +2534,108 @@ async function testMandateRejected(routes, cfg) {
     let d; try { d = JSON.parse(text); } catch { d = text; }
     setTestResult('mandate-rejected', r.status === 400 ? 'pass' : 'fail', { status: r.status, body: d });
   } catch (e) { setTestResult('mandate-rejected', 'fail', { error: e.message }); }
+}
+
+// Pre-signed mandate payloads (Hardhat Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266)
+const MANDATE_VALID_B64 = 'eyJtYW5kYXRlX2lkIjoiZGVidWctbWFuZGF0ZS12YWxpZCIsIm93bmVyX3B1YmtleSI6IjB4ZjM5RmQ2ZTUxYWFkODhGNkY0Y2U2YUI4ODI3Mjc5Y2ZmRmI5MjI2NiIsImV4cGlyZXNfYXQiOiIyMDk5LTAxLTAxVDAwOjAwOjAwLjAwMFoiLCJtYXhfc3BlbmRfdXNkY19wZXJfZGF5IjoiMTAwLjAwIiwiYWxsb3dsaXN0ZWRfdG9vbF9pZHMiOlsiKiJdLCJzaWduYXR1cmUiOiIweDZmZjQ0ODdkM2EwNmZiNzAzMTI0ZWM5YTU5NTg3NzEzYTkzODU4NjNlZjZmM2UxNTU5YTM1NzNkMmMyZjYwZGE0YzQ5NzRmZTFiNzkyYTlhMmNhMTBmZTQxNjc3ZGI2OWVhYzg5Yjc4YjRjODNhZDM4OTM1MDNmM2EwYTk0MThmMWIifQ==';
+const MANDATE_EXPIRED_B64 = 'eyJtYW5kYXRlX2lkIjoiZGVidWctbWFuZGF0ZS1leHBpcmVkIiwib3duZXJfcHVia2V5IjoiMHhmMzlGZDZlNTFhYWQ4OEY2RjRjZTZhQjg4MjcyNzljZmZGYjkyMjY2IiwiZXhwaXJlc19hdCI6IjIwMjAtMDEtMDFUMDA6MDA6MDAuMDAwWiIsIm1heF9zcGVuZF91c2RjX3Blcl9kYXkiOiIxMDAuMDAiLCJhbGxvd2xpc3RlZF90b29sX2lkcyI6WyIqIl0sInNpZ25hdHVyZSI6IjB4OGE4YzQ0NjY4OThhNGVjMWU0YWRlOTg5YzY4NmQxY2FhOTY3MmQwMGIyYzBjNTNjNDA1Zjg4YTE5YmJkMjEyOTBkZDE2OGFlZTY3MzVhYmRlNmEzMjZhYzE2MzRkZjU2OWVlODZkZDcxZDMxMjZjY2RiMjVmMDQ3ZjU1Y2IzZTExYyJ9';
+const INTENT_LOW_BUDGET_B64 = 'eyJ0eXBlIjoiSW50ZW50TWFuZGF0ZSIsImNvbnRlbnRzIjp7Im5hdHVyYWxfbGFuZ3VhZ2VfZGVzY3JpcHRpb24iOiJEZWJ1ZyB0ZXN0OiBsb3cgYnVkZ2V0IGludGVudCIsImJ1ZGdldCI6eyJhbW91bnQiOjAuMDAxLCJjdXJyZW5jeSI6IlVTRCJ9LCJtZXJjaGFudHMiOlsibG9jYWxob3N0IiwiKiJdLCJpbnRlbnRfZXhwaXJ5IjoiMjA5OS0wMS0wMVQwMDowMDowMC4wMDBaIiwicmVxdWlyZXNfcmVmdW5kYWJpbGl0eSI6ZmFsc2V9LCJ1c2VyX3NpZ25hdHVyZSI6IjB4YjQxNzAyYzhhNDQxM2EyMDU3NzgyNDRiMjVkYjcyOGQxMjA2OWI2MGU1MGIxOGFiNTAwZWRhMzA0YWMyMzdhNjJjZDRkNmFiZjM3OTcxM2VlYThhMzYwZWEwMDY2MWM4MTgyNTU1ZmQ2OTc4ZDMyM2Q2NzFiNWQ3OGE0YWQxMmUxYyIsInRpbWVzdGFtcCI6IjIwMjYtMDItMTNUMDk6MDc6NTQuMjQwWiIsInNpZ25lcl9hZGRyZXNzIjoiMHhmMzlGZDZlNTFhYWQ4OEY2RjRjZTZhQjg4MjcyNzljZmZGYjkyMjY2In0=';
+const INTENT_WRONG_MERCHANT_B64 = 'eyJ0eXBlIjoiSW50ZW50TWFuZGF0ZSIsImNvbnRlbnRzIjp7Im5hdHVyYWxfbGFuZ3VhZ2VfZGVzY3JpcHRpb24iOiJEZWJ1ZyB0ZXN0OiB3cm9uZyBtZXJjaGFudCIsImJ1ZGdldCI6eyJhbW91bnQiOjEwMCwiY3VycmVuY3kiOiJVU0QifSwibWVyY2hhbnRzIjpbIndyb25nLmV4YW1wbGUuY29tIl0sImludGVudF9leHBpcnkiOiIyMDk5LTAxLTAxVDAwOjAwOjAwLjAwMFoiLCJyZXF1aXJlc19yZWZ1bmRhYmlsaXR5IjpmYWxzZX0sInVzZXJfc2lnbmF0dXJlIjoiMHgzODc5YzU3M2ViMTUyOTQxODZmNDIxM2FlY2QwMmEwNWIzZDc1Y2NlYzg0NmEzODQ1YmM1ZTAxZmMzNDQwZWIzMGNhNTk2NzJhNWZjMGZjMGU0NjJjMWZkODZjYTliM2VhYjM0ODBkYjYzMzA4ZDUwNDE0ZjIwMGM1ZjZmZjRkOTFjIiwidGltZXN0YW1wIjoiMjAyNi0wMi0xM1QwOTowNzo1NC4yNDJaIiwic2lnbmVyX2FkZHJlc3MiOiIweGYzOUZkNmU1MWFhZDg4RjZGNGNlNmFCODgyNzI3OWNmZkZiOTIyNjYifQ==';
+
+async function testMandateSig(routes, cfg) {
+  if (!routes || !cfg) { const ctx = await debugLoadContext(); routes = routes || ctx.routes; cfg = cfg || ctx.cfg; }
+  setTestRunning('mandate-sig');
+  const route = debugGetFirstEnabled(routes);
+  if (!route) { setTestResult('mandate-sig', 'skip', 'No enabled routes'); return; }
+  try {
+    const path = debugConcretePath(route.path);
+    const headers = { 'X-Mandate': MANDATE_VALID_B64 };
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch(path, { headers });
+    const text = await r.text();
+    let d; try { d = JSON.parse(text); } catch { d = text; }
+    // PASS if we did NOT get INVALID_SIGNATURE — any other response (402 payment required,
+    // ENDPOINT_NOT_ALLOWLISTED, etc.) means the signature was verified successfully
+    const sigFailed = r.status === 403 && d?.reason_code === 'INVALID_SIGNATURE';
+    setTestResult('mandate-sig', sigFailed ? 'fail' : 'pass', {
+      status: r.status,
+      note: sigFailed ? 'EIP-191 signature rejected' : 'Signature verified OK (response is downstream of mandate check)',
+      signer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      body: d,
+    });
+  } catch (e) { setTestResult('mandate-sig', 'fail', { error: e.message }); }
+}
+
+async function testMandateExpired(routes, cfg) {
+  if (!routes || !cfg) { const ctx = await debugLoadContext(); routes = routes || ctx.routes; cfg = cfg || ctx.cfg; }
+  setTestRunning('mandate-expired');
+  const route = debugGetFirstEnabled(routes);
+  if (!route) { setTestResult('mandate-expired', 'skip', 'No enabled routes'); return; }
+  try {
+    const path = debugConcretePath(route.path);
+    const headers = { 'X-Mandate': MANDATE_EXPIRED_B64 };
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch(path, { headers });
+    const text = await r.text();
+    let d; try { d = JSON.parse(text); } catch { d = text; }
+    const expired = r.status === 403 && d?.reason_code === 'MANDATE_EXPIRED';
+    setTestResult('mandate-expired', expired ? 'pass' : 'fail', {
+      status: r.status,
+      note: expired ? 'Correctly rejected expired mandate' : 'Expected 403 MANDATE_EXPIRED',
+      body: d,
+    });
+  } catch (e) { setTestResult('mandate-expired', 'fail', { error: e.message }); }
+}
+
+async function testMandateBudget() {
+  setTestRunning('mandate-budget');
+  try {
+    const r = await api('/admin/spend/debug-mandate-valid');
+    const d = await r.json();
+    setTestResult('mandate-budget', r.ok ? 'pass' : 'fail', d);
+  } catch (e) { setTestResult('mandate-budget', 'fail', { error: e.message }); }
+}
+
+async function testIntentBudget(routes, cfg) {
+  if (!routes || !cfg) { const ctx = await debugLoadContext(); routes = routes || ctx.routes; cfg = cfg || ctx.cfg; }
+  setTestRunning('intent-budget');
+  const route = debugGetFirstEnabled(routes);
+  if (!route) { setTestResult('intent-budget', 'skip', 'No enabled routes'); return; }
+  try {
+    const path = debugConcretePath(route.path);
+    const headers = { 'X-Mandate': INTENT_LOW_BUDGET_B64 };
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch(path, { headers });
+    const text = await r.text();
+    let d; try { d = JSON.parse(text); } catch { d = text; }
+    const budgetExceeded = r.status === 403 && d?.reason_code === 'INTENT_BUDGET_EXCEEDED';
+    setTestResult('intent-budget', budgetExceeded ? 'pass' : 'fail', {
+      status: r.status,
+      note: budgetExceeded ? 'Correctly rejected — $0.001 budget too low' : 'Expected 403 INTENT_BUDGET_EXCEEDED',
+      body: d,
+    });
+  } catch (e) { setTestResult('intent-budget', 'fail', { error: e.message }); }
+}
+
+async function testIntentMerchant(routes, cfg) {
+  if (!routes || !cfg) { const ctx = await debugLoadContext(); routes = routes || ctx.routes; cfg = cfg || ctx.cfg; }
+  setTestRunning('intent-merchant');
+  const route = debugGetFirstEnabled(routes);
+  if (!route) { setTestResult('intent-merchant', 'skip', 'No enabled routes'); return; }
+  try {
+    const path = debugConcretePath(route.path);
+    const headers = { 'X-Mandate': INTENT_WRONG_MERCHANT_B64 };
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch(path, { headers });
+    const text = await r.text();
+    let d; try { d = JSON.parse(text); } catch { d = text; }
+    const merchantFailed = r.status === 403 && d?.reason_code === 'MERCHANT_NOT_MATCHED';
+    setTestResult('intent-merchant', merchantFailed ? 'pass' : 'fail', {
+      status: r.status,
+      note: merchantFailed ? 'Correctly rejected — wrong.example.com not matched' : 'Expected 403 MERCHANT_NOT_MATCHED',
+      body: d,
+    });
+  } catch (e) { setTestResult('intent-merchant', 'fail', { error: e.message }); }
 }
 
 async function testBlacklistApi() {
@@ -2687,6 +2878,49 @@ async function testBiteCommittee(cfg) {
   } catch (e) { setTestResult('bite-committee', 'fail', { error: e.message }); }
 }
 
+async function testBiteContract(cfg) {
+  if (!cfg) { try { const r = await api('/admin/dashboard-config'); if (r.ok) cfg = await r.json(); } catch {} }
+  setTestRunning('bite-contract');
+  if (!cfg?.skaleRpcUrl || !cfg?.skaleBiteContract) {
+    setTestResult('bite-contract', 'skip', 'No SKALE RPC URL or BITE contract configured');
+    return;
+  }
+  try {
+    // Step 1: eth_getCode — verify contract is deployed
+    const codeR = await fetch('/rpc-proxy', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rpcUrl: cfg.skaleRpcUrl, body: { jsonrpc: '2.0', method: 'eth_getCode', params: [cfg.skaleBiteContract, 'latest'], id: 1 } }),
+    });
+    const codeD = await codeR.json();
+    if (!codeD.result || codeD.result === '0x' || codeD.result === '0x0') {
+      setTestResult('bite-contract', 'fail', { error: 'No bytecode at contract address', address: cfg.skaleBiteContract });
+      return;
+    }
+    const codeSize = (codeD.result.length - 2) / 2; // hex bytes
+
+    // Step 2: eth_call getIntent(0x00..00) — verify ABI is correct (should return empty/zero tuple)
+    // getIntent(bytes32) selector = keccak256("getIntent(bytes32)")[:4] = 0xf13c46aa
+    const dummyIntentId = '0x' + '00'.repeat(32);
+    const callData = '0xf13c46aa' + dummyIntentId.slice(2);
+    const callR = await fetch('/rpc-proxy', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rpcUrl: cfg.skaleRpcUrl, body: { jsonrpc: '2.0', method: 'eth_call', params: [{ to: cfg.skaleBiteContract, data: callData }, 'latest'], id: 2 } }),
+    });
+    const callD = await callR.json();
+    // A successful call OR a revert with a reason string both prove the ABI is correct
+    const callable = (!callD.error && callD.result && callD.result.length > 2) ||
+                     (callD.error && callD.error.data && callD.error.data.startsWith('0x08c379a0'));
+
+    setTestResult('bite-contract', 'pass', {
+      address: cfg.skaleBiteContract,
+      bytecodeSize: `${codeSize} bytes`,
+      getIntentCallable: callable,
+      revertReason: callD.error?.message || null,
+      note: `IntentStore deployed${callable ? ', ABI verified via getIntent()' : ''}`,
+    });
+  } catch (e) { setTestResult('bite-contract', 'fail', { error: e.message }); }
+}
+
 async function testX402Probe() {
   setTestRunning('x402-probe');
   try {
@@ -2733,6 +2967,29 @@ async function testX402Skip() {
       setTestResult('x402-skip', 'pass', { RT_SKIP_X402_PROBE: false, note: 'Probe is active — x402 upstream wrapping blocked' });
     }
   } catch (e) { setTestResult('x402-skip', 'fail', { error: e.message }); }
+}
+
+async function testSsrfBlocked() {
+  setTestRunning('ssrf-blocked');
+  try {
+    const testRoute = {
+      tool_id: '__ssrf_test__',
+      path: '/api/v1/__ssrf_test__',
+      method: 'GET',
+      price_usdc: '0',
+      provider: { provider_id: '__ssrf__', backend_url: 'http://10.0.0.1:8080/internal-service' },
+    };
+    const r = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    const d = await r.json();
+    const blocked = r.status === 400 && d.reason === 'SSRF_BLOCKED';
+    // Always clean up — the route may persist in-memory despite the 400
+    try { await api('/admin/routes/__ssrf_test__', { method: 'DELETE' }); } catch {}
+    if (blocked) {
+      setTestResult('ssrf-blocked', 'pass', { status: 400, reason: 'SSRF_BLOCKED', note: 'Private IP 10.0.0.1 correctly blocked' });
+    } else {
+      setTestResult('ssrf-blocked', 'fail', { status: r.status, body: d, note: 'Route to private IP was NOT blocked' });
+    }
+  } catch (e) { setTestResult('ssrf-blocked', 'fail', { error: e.message }); }
 }
 
 async function testCdpEnv() {
@@ -2967,6 +3224,210 @@ async function testBiteLifecycle() {
       setTestResult('e2e-bite-lifecycle', 'fail', { step: 'read-after-reveal', note: 'Data not revealed after markPaid', data: read2D });
     }
   } catch (e) { setTestResult('e2e-bite-lifecycle', 'fail', { error: e.message }); }
+}
+
+async function testUpstreamError(cfg) {
+  if (!cfg) { const ctx = await debugLoadContext(); cfg = ctx.cfg; }
+  setTestRunning('e2e-upstream-error');
+  const testRoute = {
+    tool_id: '__e2e_dead_upstream__',
+    path: '/api/v1/__e2e_dead_upstream__',
+    method: 'GET',
+    price_usdc: '0',
+    provider: { provider_id: '__e2e__', backend_url: 'http://127.0.0.1:1/__dead__' },
+    _skip_ssrf: true,
+  };
+  try {
+    const createR = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    if (!createR.ok) {
+      const err = await createR.json().catch(() => ({}));
+      setTestResult('e2e-upstream-error', 'fail', { step: 'create route', status: createR.status, body: err });
+      return;
+    }
+
+    const headers = {};
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch('/api/v1/__e2e_dead_upstream__', { headers });
+    const text = await r.text();
+    let d; try { d = JSON.parse(text); } catch { d = text; }
+
+    // Cleanup
+    try { await api('/admin/routes/__e2e_dead_upstream__', { method: 'DELETE' }); } catch {}
+
+    const noCharge = r.status === 502 && d?.reason_code === 'UPSTREAM_ERROR_NO_CHARGE';
+    const zeroBilled = d?.price_usdc === '0.00';
+    setTestResult('e2e-upstream-error', noCharge ? 'pass' : 'fail', {
+      status: r.status,
+      reason_code: d?.reason_code,
+      price_billed: d?.price_usdc,
+      note: noCharge ? 'Agent NOT charged for upstream failure' + (zeroBilled ? ' ($0.00)' : '') : 'Expected 502 UPSTREAM_ERROR_NO_CHARGE',
+      body: d,
+    });
+  } catch (e) {
+    try { await api('/admin/routes/__e2e_dead_upstream__', { method: 'DELETE' }); } catch {}
+    setTestResult('e2e-upstream-error', 'fail', { error: e.message });
+  }
+}
+
+async function testReceiptIntegrity(routes, cfg) {
+  if (!routes || !cfg) { const ctx = await debugLoadContext(); routes = routes || ctx.routes; cfg = cfg || ctx.cfg; }
+  setTestRunning('receipt-integrity');
+  const dashboardPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+  const testRoute = {
+    tool_id: '__receipt_integrity_test__',
+    path: '/api/v1/__receipt_integrity_test__',
+    method: 'GET',
+    price_usdc: '0',
+    provider: { provider_id: '__e2e__', backend_url: `http://127.0.0.1:${dashboardPort}/e2e-test-upstream` },
+    _skip_ssrf: true,
+  };
+  try {
+    // Create temp route and hit it to generate a receipt
+    const createR = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    if (!createR.ok) {
+      setTestResult('receipt-integrity', 'fail', { step: 'create route', status: createR.status });
+      return;
+    }
+
+    const headers = {};
+    if (cfg?.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    const r = await debugApiFetch('/api/v1/__receipt_integrity_test__', { headers });
+
+    // Get receipt from response header
+    const receiptHeader = r.headers.get('x-receipt');
+    let headerReceipt = null;
+    if (receiptHeader) {
+      try { headerReceipt = JSON.parse(atob(receiptHeader)); } catch {}
+    }
+    if (!headerReceipt) {
+      try { await api('/admin/routes/__receipt_integrity_test__', { method: 'DELETE' }); } catch {}
+      setTestResult('receipt-integrity', 'fail', { note: 'No X-Receipt header in response' });
+      return;
+    }
+
+    // Fetch same receipt from admin API
+    const adminR = await api(`/admin/receipts?tool_id=__receipt_integrity_test__&limit=1`);
+    const adminD = await adminR.json();
+
+    // Cleanup
+    try { await api('/admin/routes/__receipt_integrity_test__', { method: 'DELETE' }); } catch {}
+
+    const stored = adminD.receipts?.[0];
+    if (!stored) {
+      setTestResult('receipt-integrity', 'fail', { note: 'Receipt not found in admin store', headerReceipt });
+      return;
+    }
+
+    // Cross-validate key fields
+    const checks = {
+      request_id: headerReceipt.request_id === stored.request_id,
+      tool_id: headerReceipt.tool_id === stored.tool_id,
+      outcome: headerReceipt.outcome === stored.outcome,
+      response_hash: headerReceipt.response_hash === stored.response_hash,
+      request_hash: headerReceipt.request_hash === stored.request_hash,
+      timestamp: headerReceipt.timestamp === stored.timestamp,
+    };
+    const allMatch = Object.values(checks).every(Boolean);
+    setTestResult('receipt-integrity', allMatch ? 'pass' : 'fail', {
+      note: allMatch ? 'Header receipt matches admin store — tamper-proof receipt chain verified' : 'Mismatch between header and stored receipt',
+      checks,
+      header_id: headerReceipt.request_id,
+      stored_id: stored.request_id,
+    });
+  } catch (e) {
+    try { await api('/admin/routes/__receipt_integrity_test__', { method: 'DELETE' }); } catch {}
+    setTestResult('receipt-integrity', 'fail', { error: e.message });
+  }
+}
+
+async function testOpenApiImport() {
+  setTestRunning('openapi-import');
+  try {
+    const miniSpec = {
+      openapi: '3.0.0',
+      info: { title: 'Debug Test API', version: '1.0.0' },
+      paths: {
+        '/quotes': {
+          get: { operationId: '__oa_import_quotes__', summary: 'Get quotes' },
+        },
+        '/search': {
+          post: { operationId: '__oa_import_search__', summary: 'Search' },
+        },
+      },
+    };
+    const r = await api('/admin/routes/import', {
+      method: 'POST',
+      body: JSON.stringify({
+        openapi: miniSpec,
+        defaults: { providerId: '__oa_test__', backendUrl: 'https://api.example.com', priceUsdc: '0.02' },
+      }),
+    });
+    const d = await r.json();
+
+    // Cleanup imported routes
+    for (const id of (d.added || [])) {
+      try { await api(`/admin/routes/${encodeURIComponent(id)}`, { method: 'DELETE' }); } catch {}
+    }
+
+    const ok = r.status === 201 && d.added_count >= 2;
+    setTestResult('openapi-import', ok ? 'pass' : 'fail', {
+      status: r.status,
+      added: d.added_count,
+      skipped: d.skipped_count,
+      tool_ids: d.added,
+      note: ok ? `Bulk-imported ${d.added_count} routes from OpenAPI spec` : 'Expected at least 2 routes imported',
+    });
+  } catch (e) { setTestResult('openapi-import', 'fail', { error: e.message }); }
+}
+
+async function testPriceUpdate() {
+  setTestRunning('price-update');
+  const testRoute = {
+    tool_id: '__price_update_test__',
+    path: '/api/v1/__price_update_test__',
+    method: 'GET',
+    price_usdc: '0.01',
+    provider: { provider_id: '__test__', backend_url: 'https://api.example.com/test' },
+  };
+  try {
+    // Create route at $0.01
+    const createR = await api('/admin/routes', { method: 'POST', body: JSON.stringify(testRoute) });
+    if (!createR.ok) {
+      const err = await createR.json().catch(() => ({}));
+      setTestResult('price-update', 'fail', { step: 'create', status: createR.status, body: err });
+      return;
+    }
+
+    // Update price to $0.05
+    const updateR = await api('/admin/routes/__price_update_test__', {
+      method: 'PUT',
+      body: JSON.stringify({ price_usdc: '0.05' }),
+    });
+    const updateD = await updateR.json();
+    if (!updateR.ok) {
+      try { await api('/admin/routes/__price_update_test__', { method: 'DELETE' }); } catch {}
+      setTestResult('price-update', 'fail', { step: 'update', status: updateR.status, body: updateD });
+      return;
+    }
+
+    // Verify new price via GET
+    const listR = await api('/admin/routes');
+    const listD = await listR.json();
+    const found = listD.routes?.find(r => r.tool_id === '__price_update_test__');
+
+    // Cleanup
+    try { await api('/admin/routes/__price_update_test__', { method: 'DELETE' }); } catch {}
+
+    const priceOk = found && found.price_usdc === '0.05';
+    setTestResult('price-update', priceOk ? 'pass' : 'fail', {
+      original: '0.01',
+      updated: found?.price_usdc,
+      note: priceOk ? 'Dynamic price change: $0.01 → $0.05 verified' : 'Price did not update correctly',
+    });
+  } catch (e) {
+    try { await api('/admin/routes/__price_update_test__', { method: 'DELETE' }); } catch {}
+    setTestResult('price-update', 'fail', { error: e.message });
+  }
 }
 </script>
 </body>

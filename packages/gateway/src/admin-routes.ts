@@ -4,7 +4,7 @@ import { createAdminAuth } from "./middleware/admin-auth.js";
 import type { RouteManager } from "./server.js";
 import { SSRFError } from "./utils/ssrf.js";
 import type { ReceiptStore } from "./services/receipt-store.js";
-import type { SpendTracker } from "./ap2.js";
+import type { SpendTracker, LifetimeSpendTracker } from "./ap2.js";
 import type { GatewayConfig } from "./config.js";
 import type { ConfigStore } from "./services/config-store.js";
 import type { BiteService } from "./bite.js";
@@ -18,6 +18,7 @@ export interface AdminRouterDeps {
   routeManager: RouteManager;
   receiptStore: ReceiptStore;
   spendTracker: SpendTracker;
+  lifetimeTracker: LifetimeSpendTracker;
   config: GatewayConfig;
   configStore: ConfigStore;
   startTime: number;
@@ -26,7 +27,7 @@ export interface AdminRouterDeps {
 }
 
 export function createAdminRouter(deps: AdminRouterDeps): Router {
-  const { routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService, reputationService } = deps;
+  const { routeManager, receiptStore, spendTracker, lifetimeTracker, config, configStore, startTime, biteService, reputationService } = deps;
   const router = Router();
 
   router.use(createAdminAuth());
@@ -197,6 +198,12 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
     res.json({ receipts, total, offset, limit });
   });
 
+  // DELETE /admin/receipts
+  router.delete("/receipts", (_req, res) => {
+    receiptStore.clear();
+    res.json({ ok: true });
+  });
+
   // GET /admin/receipts/stats
   router.get("/receipts/stats", (_req, res) => {
     const all = receiptStore.query();
@@ -229,6 +236,15 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
       mandate_id: req.params.mandateId,
       spent_today_usdc: spent.toFixed(6),
       date: new Date().toISOString().slice(0, 10),
+    });
+  });
+
+  // GET /admin/intent-spend/:mandateKey
+  router.get("/intent-spend/:mandateKey", (req, res) => {
+    const spent = lifetimeTracker.getSpent(req.params.mandateKey);
+    res.json({
+      mandate_key: req.params.mandateKey,
+      spent_lifetime_usdc: spent.toFixed(6),
     });
   });
 
@@ -483,7 +499,9 @@ function persistRoutes(routeManager: RouteManager): void {
   const routesFile = process.env.RT_ROUTES_FILE;
   if (routesFile) {
     try {
-      writeFileSync(routesFile, JSON.stringify({ routes: routeManager.getRoutes() }, null, 2));
+      // Strip internal _skipSsrf flag before persisting
+      const clean = routeManager.getRoutes().map(({ _skipSsrf, ...rest }) => rest);
+      writeFileSync(routesFile, JSON.stringify({ routes: clean }, null, 2));
     } catch {
       // Non-fatal
     }

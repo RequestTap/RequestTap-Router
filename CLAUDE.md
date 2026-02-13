@@ -38,6 +38,7 @@ Copy from `.env.example` if missing. Required vars:
 | `RT_FACILITATOR_URL` | no | `https://facilitator.cdp.coinbase.com/` | x402 facilitator |
 | `RT_BASE_NETWORK` | no | `base-sepolia` | Base network name |
 | `RT_ROUTES_FILE` | no | — | Path to routes JSON file |
+| `RT_GATEWAY_DOMAIN` | no | — | Gateway domain for IntentMandate merchant matching (falls back to Host header) |
 | `RT_ADMIN_KEY` | no | — | Bearer token for admin endpoints |
 | `ERC8004_RPC_URL` | no | — | ERC-8004 reputation registry RPC URL |
 | `ERC8004_CONTRACT` | no | — | ERC-8004 contract address |

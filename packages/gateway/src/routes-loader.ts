@@ -33,6 +33,7 @@ interface RouteEntrySchema {
   price_usdc: string;
   group?: string;
   description?: string;
+  restricted?: boolean;
   provider: {
     provider_id: string;
     backend_url: string;
@@ -133,6 +134,7 @@ export function loadRoutesFromFile(filePath: string): RouteRule[] {
     };
     if (validated.group) rule.group = validated.group;
     if (validated.description) rule.description = validated.description;
+    if (validated.restricted) rule.restricted = true;
     return rule;
   });
 

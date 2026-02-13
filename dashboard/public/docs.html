@@ -332,6 +332,30 @@
       </div>
     </div>
 
+    <div class="conn-box">
+      <div class="conn-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="conn-dot loading" id="platform-dot"></span>
+          <span>Platform Connections</span>
+        </div>
+        <svg style="width:16px;height:16px;cursor:pointer;color:var(--muted)" onclick="toggleSettings()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="conn-body">
+        <div class="conn-row">
+          <span class="conn-label">Base L2</span>
+          <span class="conn-value" id="plat-base">Not connected</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-label">SKALE</span>
+          <span class="conn-value" id="plat-skale">Not connected</span>
+        </div>
+        <div class="conn-row">
+          <span class="conn-label">CDP</span>
+          <span class="conn-value" id="plat-cdp">Not configured</span>
+        </div>
+      </div>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Revenue</div>
@@ -517,6 +541,28 @@ function updateNetworkLabels() {
   baseLabel.className = 'network-label ' + (baseConnected ? 'connected' : (baseIsMainnet ? 'mainnet' : 'testnet'));
   skaleLabel.textContent = skaleName + (skaleConnected ? ' \u2713' : '');
   skaleLabel.className = 'network-label ' + (skaleConnected ? 'connected' : (skaleIsMainnet ? 'mainnet' : 'testnet'));
+  // Update sidebar platform connections
+  const platBase = document.getElementById('plat-base');
+  const platSkale = document.getElementById('plat-skale');
+  const platCdp = document.getElementById('plat-cdp');
+  const platDot = document.getElementById('platform-dot');
+  if (platBase) {
+    platBase.textContent = baseConnected ? baseName + ' \u2713' : 'Not connected';
+    platBase.style.color = baseConnected ? 'var(--green)' : 'var(--muted)';
+  }
+  if (platSkale) {
+    platSkale.textContent = skaleConnected ? skaleName + ' \u2713' : 'Not connected';
+    platSkale.style.color = skaleConnected ? 'var(--green)' : 'var(--muted)';
+  }
+  if (platCdp) {
+    const cdpConfigured = dashboardConfig && dashboardConfig.cdpApiKeyId;
+    platCdp.textContent = cdpConfigured ? 'Configured' : 'Not configured';
+    platCdp.style.color = cdpConfigured ? 'var(--green)' : 'var(--muted)';
+  }
+  if (platDot) {
+    const anyConnected = baseConnected || skaleConnected;
+    platDot.className = 'conn-dot ' + (anyConnected ? 'online' : 'loading');
+  }
 }
 
 function toggleSettings() {

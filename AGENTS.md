@@ -145,6 +145,76 @@ console.log(res2.receipt?.reason_code); // ENDPOINT_NOT_ALLOWLISTED
 - **Spend cap** — tracks daily spend per `mandate_id`, rejects if over `max_spend_usdc_per_day`
 - **Allowlist** — rejects if the route's `tool_id` is not in `allowlisted_tool_ids`
 
+## AP2 IntentMandates
+
+IntentMandates are a newer mandate type from Google's Agent Payments Protocol (AP2 v0.1). They use **lifetime budgets** and **merchant domain matching** instead of daily spend caps and tool allowlists.
+
+### IntentMandate Fields
+
+| Field | Description |
+|-------|-------------|
+| `type` | Always `"IntentMandate"` |
+| `contents.natural_language_description` | Human-readable description of intent |
+| `contents.budget.amount` | Lifetime spending limit (USD, treated as USDC) |
+| `contents.budget.currency` | Currency code (e.g. `"USD"`) |
+| `contents.merchants` | Array of allowed gateway domains |
+| `contents.intent_expiry` | ISO 8601 expiration timestamp |
+| `contents.requires_refundability` | Whether refunds are required |
+| `contents.constraints` | Optional key-value constraints |
+| `user_signature` | EIP-191 signature over keccak256 of sorted contents |
+| `timestamp` | ISO 8601 timestamp of mandate creation |
+| `signer_address` | Ethereum address for signature verification |
+
+### Using an IntentMandate
+
+```typescript
+import { RequestTapClient } from "@requesttap/sdk";
+import type { IntentMandate } from "@requesttap/shared";
+import { keccak256, toHex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount("0x...");
+
+const contents = {
+  natural_language_description: "Allow API calls up to $1",
+  budget: { amount: 1.0, currency: "USD" },
+  merchants: ["api.example.com"],
+  intent_expiry: new Date(Date.now() + 86400000).toISOString(),
+  requires_refundability: false,
+};
+
+// Sign: keccak256 of deterministically sorted contents JSON
+function sortedStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
+  if (Array.isArray(obj)) return "[" + obj.map(sortedStringify).join(",") + "]";
+  const keys = Object.keys(obj).sort();
+  return "{" + keys.map(k => JSON.stringify(k) + ":" + sortedStringify((obj as any)[k])).join(",") + "}";
+}
+
+const hash = keccak256(toHex(sortedStringify(contents)));
+const signature = await account.signMessage({ message: { raw: hash } });
+
+const mandate: IntentMandate = {
+  type: "IntentMandate",
+  contents,
+  user_signature: signature,
+  timestamp: new Date().toISOString(),
+  signer_address: account.address,
+};
+
+const client = new RequestTapClient({
+  gatewayBaseUrl: "http://api.example.com:4402",
+  mandate,
+});
+```
+
+### What the Gateway Checks (IntentMandate)
+
+1. **Signature** — EIP-191 verification of `user_signature` against `signer_address`
+2. **Expiry** — rejects if `intent_expiry` is in the past
+3. **Merchant** — rejects if gateway domain is not in `merchants` (case-insensitive)
+4. **Budget** — tracks lifetime spend, rejects if cumulative spend exceeds `budget.amount`
+
 ## SDK Reference
 
 ### `RequestTapClient`
@@ -210,6 +280,8 @@ Every request returns a structured receipt. Key fields:
 | `SSRF_BLOCKED` | Route target is a private IP |
 | `X402_UPSTREAM_BLOCKED` | Upstream already speaks x402 |
 | `MANDATE_CONFIRM_REQUIRED` | Price exceeds mandate confirmation threshold |
+| `INTENT_BUDGET_EXCEEDED` | IntentMandate lifetime budget exceeded |
+| `MERCHANT_NOT_MATCHED` | Gateway domain not in IntentMandate merchants list |
 
 ## Example
 

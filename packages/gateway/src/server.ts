@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import type { GatewayConfig } from "./config.js";
 import { type RouteRule, type CompiledRule, type CompileOptions, compileRoutes, matchRule, RouteNotFoundError } from "./routing.js";
 import { InMemoryReplayStore } from "./replay.js";
-import { SpendTracker } from "./ap2.js";
+import { SpendTracker, LifetimeSpendTracker, intentMandateId } from "./ap2.js";
 import { createIdempotencyMiddleware } from "./middleware/idempotency.js";
 import { createMandateMiddleware } from "./middleware/mandate.js";
 import { createPaymentSystem, type PaymentSystem } from "./middleware/payment.js";
@@ -66,6 +66,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
   // Services
   const replayStore = new InMemoryReplayStore();
   const spendTracker = new SpendTracker();
+  const lifetimeTracker = new LifetimeSpendTracker();
   const receiptStore = new ReceiptStore();
   const biteService = createBiteService(config);
   const reputationService = createReputationService(config);
@@ -123,13 +124,20 @@ export function createApp({ config, routes }: CreateAppOptions) {
     getRoutes: () => [...currentRoutes],
     getCompiled: () => currentCompiled,
     addRoute(rule: RouteRule, opts?: CompileOptions) {
+      // Stamp per-route SSRF bypass so recompilation respects it
+      if (opts?.skipSsrf) rule._skipSsrf = true;
       const existing = currentRoutes.findIndex((r) => r.tool_id === rule.tool_id);
+      // Build candidate array and compile BEFORE mutating currentRoutes
+      // so a compile failure (e.g. SSRF) doesn't leave a zombie route.
+      const candidate = [...currentRoutes];
       if (existing !== -1) {
-        currentRoutes[existing] = rule;
+        candidate[existing] = rule;
       } else {
-        currentRoutes.push(rule);
+        candidate.push(rule);
       }
-      currentCompiled = compileRoutes(currentRoutes, opts);
+      const compiled = compileRoutes(candidate, opts);
+      currentRoutes = candidate;
+      currentCompiled = compiled;
     },
     removeRoute(toolId: string) {
       const idx = currentRoutes.findIndex((r) => r.tool_id === toolId);
@@ -162,7 +170,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
   });
 
   // Admin API
-  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, config, configStore, startTime, biteService, reputationService }));
+  app.use("/admin", createAdminRouter({ routeManager, receiptStore, spendTracker, lifetimeTracker, config, configStore, startTime, biteService, reputationService }));
 
   // Gateway routes - catch all non-health requests
   // NOTE: must use app.all (not app.use) so req.path retains the full path
@@ -272,7 +280,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
     if (!idempotencyResult) return;
 
     // 3. Mandate verification
-    const mandateMw = createMandateMiddleware(spendTracker, config);
+    const mandateMw = createMandateMiddleware(spendTracker, lifetimeTracker, config);
     const mandateResult = await new Promise<boolean>((resolve) => {
       mandateMw(req, res, () => resolve(true));
       if (res.headersSent) resolve(false);
@@ -318,6 +326,9 @@ export function createApp({ config, routes }: CreateAppOptions) {
       const latencyMs = Math.round(performance.now() - startTime);
       const responseHash = hashBytes(JSON.stringify(proxyRes.data));
 
+      const m = (req as any).mandate;
+      const resolvedMandateId = m ? (m.type === "IntentMandate" ? intentMandateId(m.contents) : m.mandate_id) : null;
+
       const receipt: Receipt = {
         request_id: requestId,
         tool_id: matchResult.rule.tool_id,
@@ -328,7 +339,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
         price_usdc: matchResult.price,
         currency: "USDC",
         chain: config.baseNetwork,
-        mandate_id: (req as any).mandate?.mandate_id ?? null,
+        mandate_id: resolvedMandateId,
         mandate_hash: null,
         mandate_verdict: (req as any).mandateVerdict || "SKIPPED",
         reason_code: ReasonCode.OK,
@@ -348,6 +359,9 @@ export function createApp({ config, routes }: CreateAppOptions) {
       const latencyMs = Math.round(performance.now() - startTime);
       logger.error("Proxy error", { error: String(err) });
 
+      const mErr = (req as any).mandate;
+      const errMandateId = mErr ? (mErr.type === "IntentMandate" ? intentMandateId(mErr.contents) : mErr.mandate_id) : null;
+
       const receipt: Receipt = {
         request_id: requestId,
         tool_id: matchResult.rule.tool_id,
@@ -358,7 +372,7 @@ export function createApp({ config, routes }: CreateAppOptions) {
         price_usdc: "0.00",
         currency: "USDC",
         chain: config.baseNetwork,
-        mandate_id: (req as any).mandate?.mandate_id ?? null,
+        mandate_id: errMandateId,
         mandate_hash: null,
         mandate_verdict: (req as any).mandateVerdict || "SKIPPED",
         reason_code: ReasonCode.UPSTREAM_ERROR_NO_CHARGE,
@@ -375,5 +389,5 @@ export function createApp({ config, routes }: CreateAppOptions) {
     }
   });
 
-  return { app, replayStore, receiptStore, spendTracker, routeManager };
+  return { app, replayStore, receiptStore, spendTracker, lifetimeTracker, routeManager };
 }

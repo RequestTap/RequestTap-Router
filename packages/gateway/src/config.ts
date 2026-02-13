@@ -11,6 +11,7 @@ export interface GatewayConfig {
   erc8004RpcUrl?: string;
   erc8004Contract?: string;
   erc8004MinScore?: number;
+  gatewayDomain?: string;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): GatewayConfig {
@@ -31,6 +32,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     baseNetwork,
     replayTtlMs,
   };
+
+  if (env.RT_GATEWAY_DOMAIN) {
+    config.gatewayDomain = env.RT_GATEWAY_DOMAIN;
+  }
 
   if (env.ERC8004_RPC_URL) {
     config.erc8004RpcUrl = env.ERC8004_RPC_URL;
