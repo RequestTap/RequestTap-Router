@@ -88,7 +88,10 @@ app.post("/rpc-proxy", async (req, res) => {
 });
 
 // E2E test upstream — returns simple JSON for end-to-end pipeline tests
-app.get("/e2e-test-upstream", (_req, res) => {
+app.all("/e2e-test-upstream/*", (_req, res) => {
+  res.json({ ok: true, source: "e2e-test", ts: Date.now() });
+});
+app.all("/e2e-test-upstream", (_req, res) => {
   res.json({ ok: true, source: "e2e-test", ts: Date.now() });
 });
 

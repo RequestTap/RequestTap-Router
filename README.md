@@ -2,14 +2,14 @@
   <img src="media/request-tap-logo-transparent.png" alt="RequestTap Router" width="700" />
 </p>
 
-# RequestTap x402 Router
-
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-20%2B-green.svg" alt="Node 20+"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5-blue.svg" alt="TypeScript"></a>
   <a href="https://www.x402.org/"><img src="https://img.shields.io/badge/x402-Pay%20Per%20Request-purple.svg" alt="x402"></a>
 </p>
+
+# RequestTap x402 Router
 
 Open Source x402 API Router. Instantly turn any API into a USDC pay-per-request service for AI agents.
 
