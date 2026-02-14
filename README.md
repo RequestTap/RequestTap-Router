@@ -263,11 +263,9 @@ See **[CHANGELOG.md](CHANGELOG.md)** for a detailed list of changes in each rele
 <a href="https://github.com/RequestTap/RequestTap-Router/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=RequestTap/RequestTap-Router" />
 </a>
-
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <a href="https://github.com/mikevokes">
-  <img src="media/pinned-avatar.png" alt="PinneD" width="80" style="border-radius:50%" />
-  <br />
-  <sub><b>PinneD</b></sub>
+  <img src="media/pinned-avatar.png" alt="PinneD" width="80" />
 </a>
 
 ## Website
