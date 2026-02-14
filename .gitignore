@@ -12,6 +12,9 @@ routes.json
 rt-config.json
 nul
 
+# Test wallet (private key — never commit)
+test/.wallet.json
+
 # Hardhat build artifacts
 contracts/artifacts/
 contracts/cache/

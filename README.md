@@ -20,6 +20,7 @@ Open Source x402 API Router. Instantly turn any API into a USDC pay-per-request 
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
+- [Production Deployment](#production-deployment)
 - [Configuration](#configuration)
 - [BITE Encryption](#bite-encryption-skale)
 - [API Endpoints](#api-endpoints)
@@ -143,6 +144,117 @@ Then open:
 ```bash
 npm test                                    # all workspaces
 npm test --workspace=packages/gateway       # gateway only
+```
+
+## Production Deployment
+
+In production, the RT gateway **must be the public-facing entry point** for all API routes. The gateway handles x402 payment challenges, verifies payments, proxies to your upstream API, and injects any required auth headers automatically. If agents reach your upstream directly (bypassing the gateway), they'll get auth errors instead of the expected `402 Payment Required`.
+
+### Recommended: Reverse Proxy
+
+Put a reverse proxy (nginx, Caddy, Cloudflare, Traefik) in front that routes API traffic through the gateway:
+
+```
+                 ┌─────────────────────────────────────────┐
+                 │          Reverse Proxy (nginx)          │
+Internet ──────>│                                         │
+                 │  /api/v1/*  ──>  RT Gateway (:4402)    │
+                 │  /health    ──>  RT Gateway (:4402)    │
+                 │  /docs      ──>  RT Gateway (:4402)    │
+                 │  /*         ──>  Upstream App (:8000)   │ ← landing page, etc.
+                 └─────────────────────────────────────────┘
+                                      │
+                           RT Gateway handles:
+                           • x402 payment (402 → pay → 200)
+                           • Auth injection to upstream
+                           • Receipts, mandates, replay protection
+```
+
+**Example nginx config:**
+
+```nginx
+# API routes → RT Gateway (x402 payment + proxy)
+location /api/v1/ {
+    proxy_pass http://localhost:4402;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+# Gateway public endpoints
+location /health {
+    proxy_pass http://localhost:4402;
+}
+location /docs {
+    proxy_pass http://localhost:4402;
+}
+
+# Everything else → upstream app (landing page, static assets)
+location / {
+    proxy_pass http://localhost:8000;
+}
+```
+
+**Example Docker Compose:**
+
+```yaml
+services:
+  gateway:
+    build: .
+    command: node --env-file=.env packages/gateway/dist/index.js
+    ports:
+      - "4402:4402"
+    env_file: .env
+
+  api:
+    image: your-upstream-api
+    # No public port — only reachable by the gateway
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+```
+
+### Common Mistake
+
+If your upstream API has its own auth (API keys, tokens), agents should **not** need that key. The gateway injects upstream auth automatically via the route's `provider.auth` config:
+
+```json
+{
+  "path": "/api/v1/companies",
+  "price_usdc": "0.01",
+  "provider": {
+    "backend_url": "http://api:8000",
+    "auth": {
+      "header": "X-Api-Key",
+      "value": "your-internal-api-key"
+    }
+  }
+}
+```
+
+Agents pay USDC — that **is** their authentication. If agents get a `401` instead of `402`, it means requests are bypassing the gateway and hitting the upstream directly.
+
+### Verify Your Deployment
+
+After deploying, confirm the gateway is in the request path:
+
+```bash
+# Should return 402 Payment Required (not 401 or 200)
+curl -s -o /dev/null -w "%{http_code}" https://your-domain.com/api/v1/your-paid-endpoint
+
+# Should return {"status":"ok"}
+curl -s https://your-domain.com/health
+```
+
+You can also use the provider test script:
+
+```bash
+npx tsx scripts/test-x402-provider.ts https://your-domain.com --dry-run
 ```
 
 ## Configuration
