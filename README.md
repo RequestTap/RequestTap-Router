@@ -264,7 +264,11 @@ See **[CHANGELOG.md](CHANGELOG.md)** for a detailed list of changes in each rele
   <img src="https://contrib.rocks/image?repo=RequestTap/RequestTap-Router" />
 </a>
 
-- [PinneD](https://github.com/mikevokes)
+<a href="https://github.com/mikevokes">
+  <img src="media/pinned-avatar.png" alt="PinneD" width="80" style="border-radius:50%" />
+  <br />
+  <sub><b>PinneD</b></sub>
+</a>
 
 ## Website
 
